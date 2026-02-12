@@ -1,0 +1,8 @@
+{
+    "token": "BOT_TOKEN_HERE",
+    "application_id": 12345,
+    "owner_ids": [123, 456, 789],
+    "nexus_guild_id": 12345,
+    "data_loc": "./data",
+    "command_prefix": "/"
+}

@@ -1,0 +1,10 @@
+# Directories
+venv
+data
+__pycache__
+
+# File extensions
+
+
+# Specific files
+config.json

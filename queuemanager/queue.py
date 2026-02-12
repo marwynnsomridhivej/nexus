@@ -1,0 +1,282 @@
+from typing import Dict, List, Union
+
+from exceptions import *
+
+from .queue_type import QueueType
+
+__all__ = (
+    "Queue",
+    "QueueGuildContainer",
+    "QueueEntry",
+)
+
+
+class Queue(object):
+    __slots__ = (
+        "__data",
+    )
+    # Queue object:
+    # {guild_id: QueueGuildContainer}
+
+    def __init__(self, data: dict):
+        self.__data: Dict[int, QueueGuildContainer] = {
+            guild_id: QueueGuildContainer.parse(queues) for guild_id, queues in data.items()
+        }
+
+    def get(self, guild_id: int, throw: bool = False) -> Union["QueueGuildContainer", None]:
+        """Get a QueueGuildContainer (QGC) of the specified guild
+
+        Args:
+            guild_id (int): The guild ID of the guild
+            throw (bool): Whether or not to throw an exception if a QGC instance is not found
+
+        Raises:
+            InvalidGuildID: No QGC instance exists for the specified guild
+
+        Returns:
+            Union[QueueGuildContainer, None]: The QGC instance of the specified guild
+        """
+        data = self.__data.get(guild_id)
+        if data is None and throw:
+            raise InvalidGuildID(guild_id)
+        return data
+
+    def get_or_create(self, guild_id: int) -> "QueueGuildContainer":
+        """Get or create a QueueGuildContainer (QGC) for the specified guild
+
+        Args:
+            guild_id (int): The ID of the guild
+
+        Returns:
+            QueueGuildContainer: An existing QGC instance or a newly created blank instance
+        """
+        return self.__data.get(guild_id, QueueGuildContainer({}))
+
+    @property
+    def data(self) -> Dict[int, "QueueGuildContainer"]:
+        return self.__data
+
+    def serialise(self) -> dict:
+        """Convert Queue instance representation into a dict
+
+        Returns:
+            dict: Dictionary representation of the Queue instance
+        """
+        return {
+            guild_id: qgc.serialise() for guild_id, qgc in self.__data.items()
+        }
+
+    @classmethod
+    def parse(cls, data: dict) -> "Queue":
+        """Convert dict data into Queue instance
+
+        Args:
+            data (dict): Data for the Queue instance
+
+        Returns:
+            Queue: Queue instance with attributes provided by data
+        """
+        return cls(data)
+
+
+class QueueGuildContainer(object):
+    __slots__ = (
+        "__data",
+    )
+    # QueueGuildContainer object:
+    # {name: QueueEntry}
+
+    def __init__(self, data: dict):
+        self.__data = {
+            name: QueueEntry.parse(queue_data) for name, queue_data in data.items()
+        }
+
+    def get(self, name: str, throw: bool = False) -> Union["QueueEntry", None]:
+        """Get a QueueEntry with the specified name
+
+        Args:
+            name (str): The name of the desired QueueEntry instance
+            throw (bool): Whether or not to throw an exception if a QueueEntry instance is not found
+
+        Raises:
+            QueueDoesNotExist: No QueueEntry instance exists with the specified name
+
+        Returns:
+            Union[QueueGuildContainer, None]: The QueueEntry instance with the specified name
+        """
+        data = self.__data.get(name, None)
+        if data is None and throw:
+            raise QueueDoesNotExist(name)
+        return data
+
+    def create(self, name: str, data: dict) -> None:
+        """Create a QueueEntry with specified name and data
+
+        Args:
+            name (str): The name of the queue
+            data (dict): The attributes of the queue
+
+        Raises:
+            QueueAlreadyExists: Exception thrown when name is already in use
+        """
+        if self.__data.get(name) is not None:
+            raise QueueAlreadyExists(name)
+        self.__data[name] = QueueEntry.parse(data)
+
+    def delete(self, name: str, user_id: int) -> "QueueEntry":
+        """Delete a QueueEntry with the specified name
+
+        Args:
+            name (str): The name of the queue
+            user_id (int): The ID of the user that is attempting to delete the queue
+
+        Raises:
+            QueueDoesNotExist: No QueueEntry instance exists with the specified name
+            NotQueueOwner: The user is not the owner of the queue
+
+        Returns:
+            QueueEntry: QueueEntry instance that has been deleted
+        """
+        queue_entry = self.__data.get(name)
+        if queue_entry is None:
+            raise QueueDoesNotExist(name)
+
+        if queue_entry.owner_id != user_id:
+            raise NotQueueOwner(real=queue_entry.owner_id, provided=user_id)
+
+        return self.__data.pop(name)
+
+    def filter(self, *, user_id: int = None, queue_type: QueueType = None) -> Dict[str, "QueueEntry"]:
+        """Filter all stored QueueEntry by user presence or queue type
+
+        Args:
+            user_id (int): The ID of the user to filter by
+            queue_type (QueueType): The QueueType to filter by
+
+        Returns:
+            Dict[str, QueueEntry]: Dict containing queue name and QueueEntry instance
+        """
+        return {
+            name: entry for name, entry in self.__data.items() if
+            (user_id is None or user_id in entry.players) and
+            (queue_type is None or queue_type == entry.type)
+        }
+
+    @property
+    def data(self) -> Dict[str, "QueueEntry"]:
+        return self.__data
+
+    def serialise(self) -> dict:
+        """Convert QueueGuildContainer (QGC) instance representation into a dict
+
+        Returns:
+            dict: Dictionary representation of the QGC instance
+        """
+        return {
+            name: entry.serialise() for name, entry in self.__data.items()
+        }
+
+    @classmethod
+    def parse(cls, data: dict) -> "QueueGuildContainer":
+        """Convert dict data into QueueGuildContainer (QGC) instance
+
+        Args:
+            data (dict): Data for the QGC instance
+
+        Returns:
+            QueueGuildContainer: QGC instance with attributes provided by data
+        """
+        return cls(data)
+
+
+class QueueEntry(object):
+    # QueueEntry object:
+    #   .owner_id       int
+    #   .created_date   str
+    #   .type:          QueueType
+    #   .players:       List[int]
+    #   .max_players:   int
+    __slots__ = (
+        "owner_id",
+        "created_date",
+        "type",
+        "players",
+        "max_players",
+        "locked",
+    )
+
+    def __init__(self, **data):
+        self.owner_id: int = data["owner_id"]
+        self.created_date: str = data["created_date"]
+        self.type: QueueType = data["type"]
+        self.players: List[int] = data["players"]
+        self.max_players: int = data["max_players"]
+        self.locked: bool = data["locked"]
+
+    def add_player(self, user_id: int) -> None:
+        """Adds a user ID to the player list
+
+        Args:
+            user_id (int): The ID of the user to add
+
+        Raises:
+            AlreadyInQueue: The user is already in this queue
+            QueueIsFull: The queue is full and cannot accept any new users
+            QueueIsLocked: The queue is locked and cannot be modified
+        """
+        if self.locked:
+            raise QueueIsLocked
+
+        if user_id in self.players:
+            raise AlreadyInQueue(user_id)
+
+        if len(self.players) >= self.max_players:
+            raise QueueIsFull
+
+        self.players.append(user_id)
+        self.locked = len(self.players) == self.max_players
+
+    def remove_player(self, user_id: int) -> None:
+        """Removes a user ID from the player list
+
+        Args:
+            user_id (int): The ID of the user to remove
+
+        Raises:
+            QueueIsLocked: The queue is locked and cannot be modified
+            NotInQueue: The user is not in this queue
+        """
+        if self.locked:
+            raise QueueIsLocked
+
+        if user_id not in self.players:
+            raise NotInQueue(user_id)
+
+        self.players.remove(user_id)
+
+    def serialise(self) -> dict:
+        """Convert QueueEntry instance representation into a dict
+
+        Returns:
+            dict: Dictionary representation of the QueueEntry instance
+        """
+        return {
+            "owner_id": self.owner_id,
+            "created_date": self.created_date,
+            "type": self.type,
+            "players": self.players,
+            "max_players": self.max_players,
+            "locked": self.locked,
+        }
+
+    @classmethod
+    def parse(cls, data: dict) -> "QueueEntry":
+        """Convert dict data into QueueEntry instance
+
+        Args:
+            data (dict): Data for the QueueEntry instance
+
+        Returns:
+            QueueEntry: QueueEntry instance with attributes provided by data
+        """
+        return cls(**data)
