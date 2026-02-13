@@ -12,8 +12,7 @@ class QueueCog(commands.Cog):
     def __init__(self, bot):
         from bot import Bot
         self.bot: Bot = bot
-        self.queue_loc = f"{self.bot.config.data_loc}/queue"
-        self.queue_manager = QueueManager(self)
+        self.queue_manager = QueueManager(f"{self.bot.config.data_loc}/queue")
 
     async def cog_load(self):
         await self.reload()

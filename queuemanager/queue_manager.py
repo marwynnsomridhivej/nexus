@@ -18,14 +18,13 @@ MAX_PLAYERS = {
 
 
 class QueueManager(object):
-    def __init__(self, cog):
-        from cogs import QueueCog
-        self.cog: QueueCog = cog
-        self.queues_file_path = f"{self.cog.queue_loc}/queues.json"
+    def __init__(self, queue_loc: str):
+        self.__queue_loc = queue_loc
+        self.queues_file_path = f"{self.__queue_loc}/queues.json"
 
     async def reload(self):
-        if not os.path.exists(self.cog.queue_loc):
-            os.mkdir(self.cog.queue_loc)
+        if not os.path.exists(self.__queue_loc):
+            os.mkdir(self.__queue_loc)
 
         await self._get_or_create_queue()
         print("[QueueManager] Successfully loaded")
