@@ -6,8 +6,7 @@ from discord.ext import commands
 
 from config import Config
 
-intents = discord.Intents.default()
-intents.message_content = True
+intents = discord.Intents.all()
 config = Config()
 
 
