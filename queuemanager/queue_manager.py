@@ -22,7 +22,7 @@ class QueueManager(object):
         self.__queue_loc = queue_loc
         self.queues_file_path = f"{self.__queue_loc}/queues.json"
 
-    async def reload(self):
+    async def load(self):
         if not os.path.exists(self.__queue_loc):
             os.mkdir(self.__queue_loc)
 

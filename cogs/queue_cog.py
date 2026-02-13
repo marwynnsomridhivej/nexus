@@ -12,14 +12,9 @@ class QueueCog(commands.Cog):
     def __init__(self, bot):
         from bot import Bot
         self.bot: Bot = bot
-        self.queue_manager = QueueManager(f"{self.bot.config.data_loc}/queue")
 
     async def cog_load(self):
-        await self.reload()
         print("[QueueCog] Successfully loaded")
-
-    async def reload(self) -> None:
-        await self.queue_manager.reload()
 
     @app_commands.command(name="createqueue", description="Creates a new queue for a custom match")
     @app_commands.rename(queue_type="type")
@@ -29,7 +24,7 @@ class QueueCog(commands.Cog):
     )
     async def _create_queue(self, interaction: discord.Interaction, queue_type: QueueType, name: str):
         try:
-            await self.queue_manager.create_queue(
+            await self.bot.queue_manager.create_queue(
                 guild_id=interaction.guild_id,
                 owner_id=interaction.user.id,
                 name=name,
@@ -47,7 +42,7 @@ class QueueCog(commands.Cog):
     @app_commands.describe(name="The name of the queue you are trying to delete")
     async def _delete_queue(self, interaction: discord.Interaction, name: str):
         try:
-            await self.queue_manager.delete_queue(interaction.guild_id, name, interaction.user.id)
+            await self.bot.queue_manager.delete_queue(interaction.guild_id, name, interaction.user.id)
             msg = f"Successfully deleted the queue \"{name}\""
         except QueueDoesNotExist:
             msg = f"No queue exists with the name \"{name}\""
@@ -60,7 +55,7 @@ class QueueCog(commands.Cog):
 
     @_delete_queue.autocomplete("name")
     async def _delete_queue_autocomplete(self, interaction: discord.Interaction, current: str) -> List[app_commands.Choice[str]]:
-        queues = await self.queue_manager.get_all_queues(interaction.guild_id)
+        queues = await self.bot.queue_manager.get_all_queues(interaction.guild_id)
         owned_queues = [
             name for name, entry in queues.items() if entry.owner_id == interaction.user.id
         ]
@@ -70,7 +65,7 @@ class QueueCog(commands.Cog):
     @app_commands.describe(name="The name of the queue you are trying to join")
     async def _join_queue(self, interaction: discord.Interaction, name: str):
         try:
-            await self.queue_manager.join_user_to_queue(interaction.guild_id, interaction.user.id, name)
+            await self.bot.queue_manager.join_user_to_queue(interaction.guild_id, interaction.user.id, name)
             msg = f"You successfully joined the queue \"{name}\""
         except QueueDoesNotExist:
             msg = "Unable to find a queue with the specified name"
@@ -87,7 +82,7 @@ class QueueCog(commands.Cog):
 
     @_join_queue.autocomplete("name")
     async def _join_queue_autocomplete(self, interaction: discord.Interaction, current: str) -> List[app_commands.Choice[str]]:
-        queues = await self.queue_manager.get_all_queues(interaction.guild_id)
+        queues = await self.bot.queue_manager.get_all_queues(interaction.guild_id)
         joinable_queues = [
             name for name, entry in queues.items() if len(entry.players) < entry.max_players and interaction.user.id not in entry.players
         ]
@@ -97,7 +92,7 @@ class QueueCog(commands.Cog):
     @app_commands.describe(name="The name of the queue you are trying to leave")
     async def _leave_queue(self, interaction: discord.Interaction, name: str):
         try:
-            await self.queue_manager.leave_user_from_queue(interaction.guild_id, interaction.user.id, name)
+            await self.bot.queue_manager.leave_user_from_queue(interaction.guild_id, interaction.user.id, name)
             msg = f"You successfully left the queue \"{name}\""
         except QueueDoesNotExist:
             msg = "Unable to find a queue with the specified name"
@@ -112,7 +107,7 @@ class QueueCog(commands.Cog):
 
     @_leave_queue.autocomplete("name")
     async def _leave_queue_autocomplete(self, interaction: discord.Interaction, current: str) -> List[app_commands.Choice[str]]:
-        queues = await self.queue_manager.get_all_queues(interaction.guild_id)
+        queues = await self.bot.queue_manager.get_all_queues(interaction.guild_id)
         leaveable_queues = [
             name for name, entry in queues.items() if interaction.user.id in entry.players
         ]
@@ -122,7 +117,7 @@ class QueueCog(commands.Cog):
     @app_commands.describe(name="The name of the queue you are trying to lock")
     async def _lock_queue(self, interaction: discord.Interaction, name: str):
         try:
-            await self.queue_manager.set_queue_lock_state(interaction.guild_id, interaction.user.id, name, True)
+            await self.bot.queue_manager.set_queue_lock_state(interaction.guild_id, interaction.user.id, name, True)
             msg = f"Queue \"{name}\" has been locked"
         except QueueDoesNotExist:
             msg = "Unable to find a queue with the specified name"
@@ -137,7 +132,7 @@ class QueueCog(commands.Cog):
 
     @_lock_queue.autocomplete("name")
     async def _lock_autocomplete(self, interaction: discord.Interaction, current: str) -> List[app_commands.Choice[str]]:
-        queues = await self.queue_manager.get_all_queues(interaction.guild_id)
+        queues = await self.bot.queue_manager.get_all_queues(interaction.guild_id)
         lockable_queues = [
             name for name, entry in queues.items() if entry.locked == False and interaction.user.id == entry.owner_id
         ]
@@ -147,7 +142,7 @@ class QueueCog(commands.Cog):
     @app_commands.describe(name="The name of the queue you are trying to unlock")
     async def _unlock_queue(self, interaction: discord.Interaction, name: str):
         try:
-            await self.queue_manager.set_queue_lock_state(interaction.guild_id, interaction.user.id, name, False)
+            await self.bot.queue_manager.set_queue_lock_state(interaction.guild_id, interaction.user.id, name, False)
             msg = f"Queue \"{name}\" has been unlocked"
         except QueueDoesNotExist:
             msg = "Unable to find a queue with the specified name"
@@ -162,7 +157,7 @@ class QueueCog(commands.Cog):
 
     @_unlock_queue.autocomplete("name")
     async def _unlock_autocomplete(self, interaction: discord.Interaction, current: str) -> List[app_commands.Choice[str]]:
-        queues = await self.queue_manager.get_all_queues(interaction.guild_id)
+        queues = await self.bot.queue_manager.get_all_queues(interaction.guild_id)
         unlockable_queues = [
             name for name, entry in queues.items() if entry.locked == True and interaction.user.id == entry.owner_id
         ]
@@ -176,7 +171,7 @@ class QueueCog(commands.Cog):
     )
     async def _list_queue(self, interaction: discord.Interaction, member: Optional[discord.Member] = None, queue_type: Optional[QueueType] = None):
         try:
-            results: Dict[str, QueueEntry] = await self.queue_manager.list_queues(interaction.guild_id, member=member, queue_type=queue_type)
+            results: Dict[str, QueueEntry] = await self.bot.queue_manager.list_queues(interaction.guild_id, member=member, queue_type=queue_type)
             msg = "The following queues matched criteria " +\
                 " and ".join([f"{criterion} \"{value}\"" for criterion, value in {
                     "member": member, "type": queue_type}.items() if value is not None]) +\

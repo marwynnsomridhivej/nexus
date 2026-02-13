@@ -5,6 +5,7 @@ import discord
 from discord.ext import commands
 
 from config import Config
+from queuemanager import QueueManager
 
 intents = discord.Intents.all()
 config = Config()
@@ -17,12 +18,17 @@ class Bot(commands.Bot):
             **kwargs
         )
         self.config = config
+        self.queue_manager: QueueManager = QueueManager(self.__loc("queue"))
 
     async def setup_hook(self):
+        await self.queue_manager.load()
         guild = discord.Object(id=self.config.nexus_guild_id)
         # self.tree.clear_commands(guild=guild)
         self.tree.copy_global_to(guild=guild)
         await self.tree.sync(guild=guild)
+
+    def __loc(self, _dir: str) -> str:
+        return f"{self.config.data_loc}/{_dir}"
 
 
 async def main(crash_on_exception: bool = False):
