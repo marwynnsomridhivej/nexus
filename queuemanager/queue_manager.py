@@ -58,6 +58,7 @@ class QueueManager(object):
             "players":      [],
             "max_players":  MAX_PLAYERS.get(queue_type),
             "locked": False,
+            "in_progress": False,
         }
         queue.get_or_create(guild_id).create(name.lower(), queue_entry_data)
         await self.__write_queue_file(queue)
@@ -86,6 +87,13 @@ class QueueManager(object):
         queue.get_or_create(guild_id)\
             .get(name.lower(), throw=True)\
             .set_lock(user_id, state)
+        await self.__write_queue_file(queue)
+
+    async def set_progress_state(self, guild_id: int, name: str, state: bool) -> None:
+        queue = await self._get_or_create_queue()
+        queue.get_or_create(guild_id)\
+            .get(name.lower(), throw=True)\
+            .set_progress(state)
         await self.__write_queue_file(queue)
 
     async def get_all_queues(self, guild_id: int) -> Dict[str, QueueEntry]:

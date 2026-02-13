@@ -20,6 +20,7 @@ __all__ = (
     "QueueIsFull",
     "QueueIsLocked",
     "QueueLockStateError",
+    "QueueProgressStateError",
 )
 
 
@@ -106,6 +107,14 @@ class QueueIsLocked(Exception):
 class QueueLockStateError(Exception):
     def __init__(self):
         pass
-    
+
     def __str__(self):
         return "QueueLockStateError"
+
+
+class QueueProgressStateError(Exception):
+    def __init__(self):
+        pass
+
+    def __str__(self):
+        return "QueueProgressStateError"

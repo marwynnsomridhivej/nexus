@@ -197,12 +197,6 @@ class QueueGuildContainer(object):
 
 
 class QueueEntry(object):
-    # QueueEntry object:
-    #   .owner_id       int
-    #   .created_date   str
-    #   .type:          QueueType
-    #   .players:       List[int]
-    #   .max_players:   int
     __slots__ = (
         "owner_id",
         "created_date",
@@ -210,6 +204,7 @@ class QueueEntry(object):
         "players",
         "max_players",
         "locked",
+        "in_progress",
     )
 
     def __init__(self, **data):
@@ -219,6 +214,7 @@ class QueueEntry(object):
         self.players: List[int] = data["players"]
         self.max_players: int = data["max_players"]
         self.locked: bool = data["locked"]
+        self.in_progress: bool = data["in_progress"]
 
     def add_player(self, user_id: int) -> None:
         """Adds a user ID to the player list
@@ -279,6 +275,24 @@ class QueueEntry(object):
 
         self.locked = state
 
+    def set_progress(self, state: bool) -> None:
+        """Sets the queue's in_progress flag
+
+        Args:
+            state (bool): The value to set the queue's in_progress flag
+
+        Raises:
+            QueueIsLocked: The queue is locked and cannot be modified
+            QueueProgressStateError: The specified state does not change the queue's in_progress flag
+        """
+        if self.locked:
+            raise QueueIsLocked
+        
+        if self.in_progress == state:
+            raise QueueProgressStateError
+        
+        self.in_progress = state
+
     def serialise(self) -> dict:
         """Convert QueueEntry instance representation into a dict
 
@@ -292,6 +306,7 @@ class QueueEntry(object):
             "players": self.players,
             "max_players": self.max_players,
             "locked": self.locked,
+            "in_progress": self.in_progress,
         }
 
     @classmethod
