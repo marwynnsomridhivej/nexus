@@ -1,5 +1,7 @@
 from typing import Dict, List, Union
 
+import discord
+
 from exceptions import *
 
 from .queue_type import QueueType
@@ -20,7 +22,7 @@ class Queue(object):
 
     def __init__(self, data: dict):
         self.__data: Dict[int, QueueGuildContainer] = {
-            guild_id: QueueGuildContainer.parse(queues) for guild_id, queues in data.items()
+            int(guild_id): QueueGuildContainer.parse(queues) for guild_id, queues in data.items()
         }
 
     def get(self, guild_id: int, throw: bool = False) -> Union["QueueGuildContainer", None]:
@@ -36,10 +38,10 @@ class Queue(object):
         Returns:
             Union[QueueGuildContainer, None]: The QGC instance of the specified guild
         """
-        data = self.__data.get(guild_id)
-        if data is None and throw:
+        qgc = self.__data.get(guild_id)
+        if qgc is None and throw:
             raise InvalidGuildID(guild_id)
-        return data
+        return qgc
 
     def get_or_create(self, guild_id: int) -> "QueueGuildContainer":
         """Get or create a QueueGuildContainer (QGC) for the specified guild
@@ -50,7 +52,11 @@ class Queue(object):
         Returns:
             QueueGuildContainer: An existing QGC instance or a newly created blank instance
         """
-        return self.__data.get(guild_id, QueueGuildContainer({}))
+        qgc = self.get(guild_id)
+        if qgc is None:
+            qgc = QueueGuildContainer({})
+            self.__data[guild_id] = qgc
+        return qgc
 
     @property
     def data(self) -> Dict[int, "QueueGuildContainer"]:
@@ -88,7 +94,7 @@ class QueueGuildContainer(object):
 
     def __init__(self, data: dict):
         self.__data = {
-            name: QueueEntry.parse(queue_data) for name, queue_data in data.items()
+            name: QueueEntry.parse(entry) for name, entry in data.items()
         }
 
     def get(self, name: str, throw: bool = False) -> Union["QueueEntry", None]:
@@ -104,7 +110,7 @@ class QueueGuildContainer(object):
         Returns:
             Union[QueueGuildContainer, None]: The QueueEntry instance with the specified name
         """
-        data = self.__data.get(name, None)
+        data = self.__data.get(name)
         if data is None and throw:
             raise QueueDoesNotExist(name)
         return data
@@ -146,7 +152,7 @@ class QueueGuildContainer(object):
 
         return self.__data.pop(name)
 
-    def filter(self, *, user_id: int = None, queue_type: QueueType = None) -> Dict[str, "QueueEntry"]:
+    def filter(self, *, member: Union[discord.Member, None], queue_type: QueueType = None) -> Dict[str, "QueueEntry"]:
         """Filter all stored QueueEntry by user presence or queue type
 
         Args:
@@ -156,6 +162,7 @@ class QueueGuildContainer(object):
         Returns:
             Dict[str, QueueEntry]: Dict containing queue name and QueueEntry instance
         """
+        user_id = member.id if hasattr(member, "id") else None
         return {
             name: entry for name, entry in self.__data.items() if
             (user_id is None or user_id in entry.players) and
@@ -234,7 +241,6 @@ class QueueEntry(object):
             raise QueueIsFull
 
         self.players.append(user_id)
-        self.locked = len(self.players) == self.max_players
 
     def remove_player(self, user_id: int) -> None:
         """Removes a user ID from the player list
@@ -253,6 +259,25 @@ class QueueEntry(object):
             raise NotInQueue(user_id)
 
         self.players.remove(user_id)
+
+    def set_lock(self, user_id: int, state: bool) -> None:
+        """Set the queue's lock state
+
+        Args:
+            user_id (int): The ID of the user attempting to modify this queue
+            state (bool): The state to set the queue's lock
+
+        Raises:
+            NotQueueOwner: The user is not the owner of the queue
+            QueueLockStateError: The specified state does not change the queue's lock state
+        """
+        if user_id != self.owner_id:
+            raise NotQueueOwner(real=self.owner_id, provided=user_id)
+
+        if self.locked == state:
+            raise QueueLockStateError
+
+        self.locked = state
 
     def serialise(self) -> dict:
         """Convert QueueEntry instance representation into a dict
