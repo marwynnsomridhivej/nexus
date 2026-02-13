@@ -1,6 +1,6 @@
 # Directories
+db
 venv
-data
 __pycache__
 
 # File extensions
