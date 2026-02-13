@@ -1,15 +1,14 @@
-import copy
 import json
 import os
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Dict, Optional
 
 import discord
 from aiofile import async_open
 
 from exceptions import *
 
-from .queue import Queue, QueueEntry, QueueGuildContainer
+from .queue import Queue, QueueEntry
 from .queue_type import QueueType
 
 MAX_PLAYERS = {
@@ -35,6 +34,7 @@ class QueueManager(object):
         if os.path.exists(self.queues_file_path):
             async with async_open(self.queues_file_path, "r") as afile:
                 return json.loads(await afile.read())
+
         raise NoQueuesFile(self.queues_file_path)
 
     async def __write_queue_file(self, queue: Queue) -> None:
@@ -50,10 +50,8 @@ class QueueManager(object):
             data = {}
         return Queue.parse(data)
 
-    async def create_queue(self, *, guild_id: int, owner_id: int, name: str, queue_type: QueueType) -> bool:
+    async def create_queue(self, *, guild_id: int, owner_id: int, name: str, queue_type: QueueType) -> None:
         queue = await self._get_or_create_queue()
-        qgc = queue.get_or_create(guild_id)
-
         queue_entry_data = {
             "owner_id":     owner_id,
             "created_date": datetime.now().strftime(r"%d/%m/%Y, %H:%M:%S"),
@@ -62,44 +60,46 @@ class QueueManager(object):
             "max_players":  MAX_PLAYERS.get(queue_type),
             "locked": False,
         }
-
-        qgc.create(name.lower(), queue_entry_data)
+        queue.get_or_create(guild_id).create(name.lower(), queue_entry_data)
         await self.__write_queue_file(queue)
-        return True
 
-    async def delete_queue(self, guild_id: int, name: str, user_id: int) -> bool:
+    async def delete_queue(self, guild_id: int, name: str, user_id: int) -> None:
         queue = await self._get_or_create_queue()
-        qgc = queue.get_or_create(guild_id)
-        qgc.delete(name, user_id)
+        queue.get_or_create(guild_id).delete(name, user_id)
         await self.__write_queue_file(queue)
-        return True
 
-    async def join_user_to_queue(self, guild_id: int, user_id: int, name: str) -> bool:
+    async def join_user_to_queue(self, guild_id: int, user_id: int, name: str) -> None:
         queue = await self._get_or_create_queue()
-        entry = queue.get_or_create(guild_id).get(name.lower(), throw=True)
-
-        entry.add_player(user_id)
+        queue.get_or_create(guild_id)\
+            .get(name.lower(), throw=True)\
+            .add_player(user_id)
         await self.__write_queue_file(queue)
-        return True
 
-    async def leave_user_from_queue(self, guild_id: int, user_id: int, name: str) -> bool:
+    async def leave_user_from_queue(self, guild_id: int, user_id: int, name: str) -> None:
         queue = await self._get_or_create_queue()
-        entry = queue.get_or_create(guild_id).get(name.lower(), throw=True)
-
-        entry.remove_player(user_id)
+        queue.get_or_create(guild_id)\
+            .get(name.lower(), throw=True)\
+            .remove_player(user_id)
         await self.__write_queue_file(queue)
-        return True
+
+    async def set_queue_lock_state(self, guild_id: int, user_id: int, name: str, state: bool) -> None:
+        queue = await self._get_or_create_queue()
+        queue.get_or_create(guild_id)\
+            .get(name.lower(), throw=True)\
+            .set_lock(user_id, state)
+        await self.__write_queue_file(queue)
 
     async def get_all_queues(self, guild_id: int) -> Dict[str, QueueEntry]:
         queue = await self._get_or_create_queue()
-        return queue.get_or_create(guild_id)
+        return queue.get_or_create(guild_id).data
 
     async def list_queues(self, guild_id: int, member: Optional[discord.Member] = None, queue_type: Optional[QueueType] = None) -> Dict[str, QueueEntry]:
         queue = await self._get_or_create_queue()
         results = queue.get_or_create(guild_id).filter(
-            user_id=member.id,
+            member=member,
             queue_type=queue_type
         )
         if not results:
             raise NoListResults(member=member, queue_type=queue_type)
+
         return results
