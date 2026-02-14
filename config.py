@@ -16,23 +16,21 @@ class Config(object):
     ]
 
     def __init__(self):
-        self.reload()
+        self.load()
 
-    def generate(self) -> dict:
+    def serialise(self) -> dict:
         return {
             "token":            self.__token,
-            "application_id":   self.__application_id,
             "owner_ids":        self.owner_ids,
             "nexus_guild_id":   self.nexus_guild_id,
             "data_loc":         self.data_loc,
             "command_prefix":   self.command_prefix,
         }
 
-    def reload(self) -> None:
+    def load(self) -> None:
         with open("./config.json", "r") as file:
             data = json.loads(file.read())
         self.__token = data["token"]
-        self.__application_id = data["application_id"]
         self.owner_ids = set(data["owner_ids"])
         self.nexus_guild_id = data["nexus_guild_id"]
         self.data_loc = data["data_loc"]
@@ -49,12 +47,8 @@ class Config(object):
 
     def save(self) -> None:
         with open("./config.json", "w") as file:
-            file.write(json.dumps(self.generate()))
+            file.write(json.dumps(self.serialise()))
 
     @property
     def token(self) -> str:
         return self.__token
-
-    @property
-    def application_id(self) -> int:
-        return self.__application_id
