@@ -8,8 +8,6 @@ class StatsCog(commands.Cog):
         from bot import Bot
         self.bot: Bot = bot
 
-        self.reload()
-
     async def cog_load(self):
         print("[StatsCog] Successfully loaded")
 

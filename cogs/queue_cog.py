@@ -8,7 +8,7 @@ from exceptions import *
 from queuemanager import *
 
 
-class QueueCog(commands.Cog):
+class QueueCog(commands.GroupCog, name="queue"):
     def __init__(self, bot):
         from bot import Bot
         self.bot: Bot = bot
@@ -16,7 +16,7 @@ class QueueCog(commands.Cog):
     async def cog_load(self):
         print("[QueueCog] Successfully loaded")
 
-    @app_commands.command(name="createqueue", description="Creates a new queue for a custom match")
+    @app_commands.command(name="create", description="Creates a new queue for a custom match")
     @app_commands.rename(queue_type="type")
     @app_commands.describe(
         queue_type="The ruleset used for this queue",
@@ -38,7 +38,7 @@ class QueueCog(commands.Cog):
         finally:
             await interaction.response.send_message(msg)
 
-    @app_commands.command(name="deletequeue", description="Delete a queue you created")
+    @app_commands.command(name="delete", description="Delete a queue you created")
     @app_commands.describe(name="The name of the queue you are trying to delete")
     async def _delete_queue(self, interaction: discord.Interaction, name: str):
         try:
@@ -61,7 +61,7 @@ class QueueCog(commands.Cog):
         ]
         return self.get_sorted_choices(owned_queues, current)
 
-    @app_commands.command(name="joinqueue", description="Join an existing queue")
+    @app_commands.command(name="join", description="Join an existing queue")
     @app_commands.describe(name="The name of the queue you are trying to join")
     async def _join_queue(self, interaction: discord.Interaction, name: str):
         try:
@@ -88,7 +88,7 @@ class QueueCog(commands.Cog):
         ]
         return self.get_sorted_choices(joinable_queues, current)
 
-    @app_commands.command(name="leavequeue", description="Leave an existing queue")
+    @app_commands.command(name="leave", description="Leave an existing queue")
     @app_commands.describe(name="The name of the queue you are trying to leave")
     async def _leave_queue(self, interaction: discord.Interaction, name: str):
         try:
@@ -113,7 +113,7 @@ class QueueCog(commands.Cog):
         ]
         return self.get_sorted_choices(leaveable_queues, current)
 
-    @app_commands.command(name="lockqueue", description="Lock an existing queue")
+    @app_commands.command(name="lock", description="Lock an existing queue")
     @app_commands.describe(name="The name of the queue you are trying to lock")
     async def _lock_queue(self, interaction: discord.Interaction, name: str):
         try:
@@ -125,6 +125,8 @@ class QueueCog(commands.Cog):
             msg = "The specified queue is alreaedy locked"
         except NotQueueOwner:
             msg = "Unable to lock the specified queue, as you are not its owner"
+        except QueueProgressStateError:
+            msg = "The specified queue currently has a match in progress and cannot be modified"
         except Exception as e:
             msg = f"An error has occurred: {e}"
         finally:
@@ -138,7 +140,7 @@ class QueueCog(commands.Cog):
         ]
         return self.get_sorted_choices(lockable_queues, current)
 
-    @app_commands.command(name="unlockqueue", description="Unlock an existing queue")
+    @app_commands.command(name="unlock", description="Unlock an existing queue")
     @app_commands.describe(name="The name of the queue you are trying to unlock")
     async def _unlock_queue(self, interaction: discord.Interaction, name: str):
         try:
@@ -150,6 +152,8 @@ class QueueCog(commands.Cog):
             msg = "The specified queue is alreaedy unlocked"
         except NotQueueOwner:
             msg = "Unable to unlock the specified queue, as you are not its owner"
+        except QueueProgressStateError:
+            msg = "The specified queue currently has a match in progress and cannot be modified"
         except Exception as e:
             msg = f"An error has occurred: {e}"
         finally:
@@ -163,7 +167,7 @@ class QueueCog(commands.Cog):
         ]
         return self.get_sorted_choices(unlockable_queues, current)
 
-    @app_commands.command(name="listqueue", description="List all queues with filters")
+    @app_commands.command(name="list", description="List all queues with filters")
     @app_commands.rename(queue_type="type")
     @app_commands.describe(
         member="Filter only queues this member is a part of",
@@ -184,7 +188,8 @@ class QueueCog(commands.Cog):
                         f">  Players: {len(entry.players)}/{entry.max_players}",
                         f">  Created on {entry.created_date}",
                         f">  Owner: {interaction.guild.get_member(entry.owner_id).display_name}",
-                        f">  Locked: {"Yes" if entry.locked else "No"}"
+                        f">  Locked: {"Yes" if entry.locked else "No"}",
+                        f">  In Progress: {"Yes" if entry.in_progress else "No"}"
                         "\n",
                     ])
                 )
