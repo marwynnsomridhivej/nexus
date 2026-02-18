@@ -2,18 +2,19 @@ from typing import Dict, List, Union
 
 import discord
 
+from base import WrapperBase
 from exceptions import *
 
-from .queue_type import QueueType
+from .enums import QueueType
 
 __all__ = (
-    "Queue",
+    "QueueWrapper",
     "QueueGuildContainer",
     "QueueEntry",
 )
 
 
-class Queue(object):
+class QueueWrapper(WrapperBase):
     __slots__ = (
         "__data",
     )
@@ -72,20 +73,8 @@ class Queue(object):
             guild_id: qgc.serialise() for guild_id, qgc in self.__data.items()
         }
 
-    @classmethod
-    def parse(cls, data: dict) -> "Queue":
-        """Convert dict data into Queue instance
 
-        Args:
-            data (dict): Data for the Queue instance
-
-        Returns:
-            Queue: Queue instance with attributes provided by data
-        """
-        return cls(data)
-
-
-class QueueGuildContainer(object):
+class QueueGuildContainer(WrapperBase):
     __slots__ = (
         "__data",
     )
@@ -108,7 +97,7 @@ class QueueGuildContainer(object):
             QueueDoesNotExist: No QueueEntry instance exists with the specified name
 
         Returns:
-            Union[QueueGuildContainer, None]: The QueueEntry instance with the specified name
+            Union[QueueEntry, None]: The QueueEntry instance with the specified name
         """
         data = self.__data.get(name)
         if data is None and throw:
@@ -183,20 +172,8 @@ class QueueGuildContainer(object):
             name: entry.serialise() for name, entry in self.__data.items()
         }
 
-    @classmethod
-    def parse(cls, data: dict) -> "QueueGuildContainer":
-        """Convert dict data into QueueGuildContainer (QGC) instance
 
-        Args:
-            data (dict): Data for the QGC instance
-
-        Returns:
-            QueueGuildContainer: QGC instance with attributes provided by data
-        """
-        return cls(data)
-
-
-class QueueEntry(object):
+class QueueEntry(WrapperBase):
     __slots__ = (
         "owner_id",
         "created_date",
@@ -207,7 +184,7 @@ class QueueEntry(object):
         "in_progress",
     )
 
-    def __init__(self, **data):
+    def __init__(self, data: dict):
         self.owner_id: int = data["owner_id"]
         self.created_date: str = data["created_date"]
         self.type: QueueType = data["type"]
@@ -264,9 +241,13 @@ class QueueEntry(object):
             state (bool): The state to set the queue's lock
 
         Raises:
+            QueueProgressStateError: The queue is currently in progress and cannot be modified
             NotQueueOwner: The user is not the owner of the queue
             QueueLockStateError: The specified state does not change the queue's lock state
         """
+        if self.in_progress:
+            raise QueueProgressStateError
+
         if user_id != self.owner_id:
             raise NotQueueOwner(real=self.owner_id, provided=user_id)
 
@@ -282,15 +263,11 @@ class QueueEntry(object):
             state (bool): The value to set the queue's in_progress flag
 
         Raises:
-            QueueIsLocked: The queue is locked and cannot be modified
             QueueProgressStateError: The specified state does not change the queue's in_progress flag
         """
-        if self.locked:
-            raise QueueIsLocked
-        
         if self.in_progress == state:
             raise QueueProgressStateError
-        
+
         self.in_progress = state
 
     def serialise(self) -> dict:
@@ -300,23 +277,11 @@ class QueueEntry(object):
             dict: Dictionary representation of the QueueEntry instance
         """
         return {
-            "owner_id": self.owner_id,
+            "owner_id":     self.owner_id,
             "created_date": self.created_date,
-            "type": self.type,
-            "players": self.players,
-            "max_players": self.max_players,
-            "locked": self.locked,
-            "in_progress": self.in_progress,
+            "type":         self.type,
+            "players":      self.players,
+            "max_players":  self.max_players,
+            "locked":       self.locked,
+            "in_progress":  self.in_progress,
         }
-
-    @classmethod
-    def parse(cls, data: dict) -> "QueueEntry":
-        """Convert dict data into QueueEntry instance
-
-        Args:
-            data (dict): Data for the QueueEntry instance
-
-        Returns:
-            QueueEntry: QueueEntry instance with attributes provided by data
-        """
-        return cls(**data)

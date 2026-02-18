@@ -8,8 +8,8 @@ from aiofile import async_open
 
 from exceptions import *
 
-from .queue import Queue, QueueEntry
-from .queue_type import QueueType
+from .enums import QueueType
+from .queue import QueueEntry, QueueWrapper
 
 MAX_PLAYERS = {
     QueueType.R6_5V5: 10,
@@ -26,31 +26,31 @@ class QueueManager(object):
         if not os.path.exists(self.__queue_loc):
             os.mkdir(self.__queue_loc)
 
-        await self._get_or_create_queue()
+        await self._get_or_create_wrapper()
         print("[QueueManager] Successfully loaded")
 
-    async def __get_queue(self) -> dict:
+    async def __get_wrapper(self) -> dict:
         if os.path.exists(self.queues_file_path):
             async with async_open(self.queues_file_path, "r") as afile:
                 return json.loads(await afile.read())
 
         raise NoQueuesFile(self.queues_file_path)
 
-    async def __write_queue_file(self, queue: Queue) -> None:
+    async def __write_queue_file(self, wrapper: QueueWrapper) -> None:
         async with async_open(self.queues_file_path, "w") as afile:
-            await afile.write(json.dumps(queue.serialise(), indent=4))
+            await afile.write(json.dumps(wrapper.serialise(), indent=4))
 
-    async def _get_or_create_queue(self) -> Queue:
+    async def _get_or_create_wrapper(self) -> QueueWrapper:
         try:
-            data = await self.__get_queue()
+            data = await self.__get_wrapper()
         except NoQueuesFile:
             async with async_open(self.queues_file_path, "w") as afile:
-                await afile.write(json.dumps({}))
+                await afile.write("{}")
             data = {}
-        return Queue.parse(data)
+        return QueueWrapper.parse(data)
 
     async def create_queue(self, *, guild_id: int, owner_id: int, name: str, queue_type: QueueType) -> None:
-        queue = await self._get_or_create_queue()
+        wrapper = await self._get_or_create_wrapper()
         queue_entry_data = {
             "owner_id":     owner_id,
             "created_date": datetime.now().strftime(r"%d/%m/%Y, %H:%M:%S"),
@@ -60,49 +60,53 @@ class QueueManager(object):
             "locked": False,
             "in_progress": False,
         }
-        queue.get_or_create(guild_id).create(name.lower(), queue_entry_data)
-        await self.__write_queue_file(queue)
+        wrapper.get_or_create(guild_id).create(name.lower(), queue_entry_data)
+        await self.__write_queue_file(wrapper)
 
     async def delete_queue(self, guild_id: int, name: str, user_id: int) -> None:
-        queue = await self._get_or_create_queue()
-        queue.get_or_create(guild_id).delete(name, user_id)
-        await self.__write_queue_file(queue)
+        wrapper = await self._get_or_create_wrapper()
+        wrapper.get_or_create(guild_id).delete(name, user_id)
+        await self.__write_queue_file(wrapper)
 
     async def join_user_to_queue(self, guild_id: int, user_id: int, name: str) -> None:
-        queue = await self._get_or_create_queue()
-        queue.get_or_create(guild_id)\
+        wrapper = await self._get_or_create_wrapper()
+        wrapper.get_or_create(guild_id)\
             .get(name.lower(), throw=True)\
             .add_player(user_id)
-        await self.__write_queue_file(queue)
+        await self.__write_queue_file(wrapper)
 
     async def leave_user_from_queue(self, guild_id: int, user_id: int, name: str) -> None:
-        queue = await self._get_or_create_queue()
-        queue.get_or_create(guild_id)\
+        wrapper = await self._get_or_create_wrapper()
+        wrapper.get_or_create(guild_id)\
             .get(name.lower(), throw=True)\
             .remove_player(user_id)
-        await self.__write_queue_file(queue)
+        await self.__write_queue_file(wrapper)
 
     async def set_queue_lock_state(self, guild_id: int, user_id: int, name: str, state: bool) -> None:
-        queue = await self._get_or_create_queue()
-        queue.get_or_create(guild_id)\
+        wrapper = await self._get_or_create_wrapper()
+        wrapper.get_or_create(guild_id)\
             .get(name.lower(), throw=True)\
             .set_lock(user_id, state)
-        await self.__write_queue_file(queue)
+        await self.__write_queue_file(wrapper)
 
     async def set_progress_state(self, guild_id: int, name: str, state: bool) -> None:
-        queue = await self._get_or_create_queue()
-        queue.get_or_create(guild_id)\
+        wrapper = await self._get_or_create_wrapper()
+        wrapper.get_or_create(guild_id)\
             .get(name.lower(), throw=True)\
             .set_progress(state)
-        await self.__write_queue_file(queue)
+        await self.__write_queue_file(wrapper)
 
     async def get_all_queues(self, guild_id: int) -> Dict[str, QueueEntry]:
-        queue = await self._get_or_create_queue()
-        return queue.get_or_create(guild_id).data
+        wrapper = await self._get_or_create_wrapper()
+        return wrapper.get_or_create(guild_id).data
+
+    async def get_queues_owned_by(self, guild_id: int, owner_id: int) -> Dict[str, QueueEntry]:
+        queues = await self.get_all_queues(guild_id)
+        return {name: entry for name, entry in queues.items() if entry.owner_id == owner_id}
 
     async def list_queues(self, guild_id: int, member: Optional[discord.Member] = None, queue_type: Optional[QueueType] = None) -> Dict[str, QueueEntry]:
-        queue = await self._get_or_create_queue()
-        results = queue.get_or_create(guild_id).filter(
+        wrapper = await self._get_or_create_wrapper()
+        results = wrapper.get_or_create(guild_id).filter(
             member=member,
             queue_type=queue_type
         )
@@ -110,3 +114,14 @@ class QueueManager(object):
             raise NoListResults(member=member, queue_type=queue_type)
 
         return results
+
+    async def start_match(self, guild_id: int, owner_id: int, name: str) -> QueueEntry:
+        try:
+            await self.set_queue_lock_state(guild_id, owner_id, name, True)
+        except QueueLockStateError:
+            pass
+
+        await self.set_progress_state(guild_id, name, True)
+        wrapper = await self._get_or_create_wrapper()
+
+        return wrapper.get(guild_id, throw=True).get(name, throw=True)
