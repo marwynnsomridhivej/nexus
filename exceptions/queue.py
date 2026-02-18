@@ -7,8 +7,6 @@ import discord
 __all__ = (
     "AlreadyInQueue",
 
-    "InvalidGuildID",
-
     "NoListResults",
     "NoQueuesFile",
 
@@ -30,14 +28,6 @@ class AlreadyInQueue(Exception):
 
     def __str__(self):
         return f"AlreadyInQueue[user_id={self.user_id}]"
-
-
-class InvalidGuildID(KeyError):
-    def __init__(self, guild_id: int):
-        self.guild_id = guild_id
-
-    def __str__(self):
-        return f"InvalidGuildID[guild_id={self.guild_id}]"
 
 
 class NoQueuesFile(FileNotFoundError):
