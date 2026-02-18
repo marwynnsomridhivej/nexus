@@ -4,4 +4,4 @@
 
 |Name|Description|Params (Ordered)|
 |---|---|---|
-|`queue_manager_queue_full`|Emitted when any queue reaches its maximum capacity, indicating pre-match should begin|`queue`|
+|`prematch_modal_done`|Emitted after a queue owner correctly fills out the prematch configuration modal|`PrematchPayload`|
