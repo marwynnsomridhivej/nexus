@@ -78,7 +78,7 @@ class MatchGuildContainer(WrapperBase):
     )
 
     def __init__(self, data: dict):
-        self.__data = {
+        self.__data: Dict[str, MatchEntry] = {
             name: MatchEntry.parse(entry) for name, entry in data.items()
         }
 
@@ -253,9 +253,9 @@ class MatchEntry(WrapperBase):
             "type":             self.type,
             "voice_channel_id": self.voice_channel_id,
 
-            "team_a": self.team_a.serialise(),
-            "team_b": self.team_b.serialise(),
-            "map": self.map,
+            "team_a":           self.team_a.serialise(),
+            "team_b":           self.team_b.serialise(),
+            "map":              self.map,
         }
 
 
