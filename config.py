@@ -5,7 +5,6 @@ import os
 class Config(object):
     __slots__ = [
         "__token",
-        "__application_id",
 
         "owner_ids",
         "nexus_guild_id",
