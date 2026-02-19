@@ -2,7 +2,6 @@ __all__ = (
     "MatchAlreadyExists",
     "MatchDoesNotExist",
     "MatchFinalised",
-    "NoMatchesFile",
 
     "CaptainAlreadyAssigned",
     "CaptainNotAssigned",
@@ -33,11 +32,6 @@ class MatchDoesNotExist(Exception):
 
 class MatchFinalised(Exception):
     pass
-
-
-class NoMatchesFile(FileNotFoundError):
-    def __init__(self, path: str):
-        super().__init__(errno.ENOENT, os.strerror(errno.ENOENT), path)
 
 
 class CaptainAlreadyAssigned(Exception):

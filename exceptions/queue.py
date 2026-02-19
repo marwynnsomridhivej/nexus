@@ -8,7 +8,6 @@ __all__ = (
     "AlreadyInQueue",
 
     "NoListResults",
-    "NoQueuesFile",
 
     "NotInQueue",
     "NotQueueOwner",
@@ -28,11 +27,6 @@ class AlreadyInQueue(Exception):
 
     def __str__(self):
         return f"AlreadyInQueue[user_id={self.user_id}]"
-
-
-class NoQueuesFile(FileNotFoundError):
-    def __init__(self, path: str):
-        super().__init__(errno.ENOENT, os.strerror(errno.ENOENT), path)
 
 
 class NoListResults(Exception):
