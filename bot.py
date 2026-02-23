@@ -29,6 +29,7 @@ class Bot(commands.Bot):
         # Initialise managers
         await self.queue_manager.load()
         await self.match_manager.load()
+        await self.stats_manager.load()
 
         # Load all cogs
         for cog in self.config.cogs:
