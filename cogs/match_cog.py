@@ -1,14 +1,12 @@
 import random
-import traceback
 from typing import Coroutine, Dict, List, Tuple
 
 import discord
 from discord import app_commands
 from discord.ext import commands
 
-from event import Events
+from event import Event, PrematchPayload
 from exceptions import *
-from matchmanager import PrematchPayload
 from queuemanager import CaptSelect
 from ui import *
 
@@ -19,12 +17,12 @@ class MatchCog(commands.GroupCog, name="match"):
         self.bot: Bot = bot
 
     async def cog_load(self):
-        _handlers: Dict[Coroutine, Events] = {
-            self._prematch_dm: Events.PREMATCH_MODAL_DONE,
-            self._init_match_data: Events.PREMATCH_MODAL_DONE,
+        _handlers: Dict[Coroutine, Event] = {
+            self._prematch_dm: Event.PREMATCH_MODAL_DONE,
+            self._init_match_data: Event.PREMATCH_MODAL_DONE,
         }
-        for func, event in _handlers.items():
-            self.bot.add_listener(func, f"on_{event}")
+        for coro, event in _handlers.items():
+            self.bot.add_listener(coro, f"on_{event}")
 
         print("[MatchCog] Successfully loaded")
 
@@ -50,18 +48,27 @@ The following will happen BEFORE you get into the custom:
         await self.bot.match_manager.create_match(payload=payload)
 
         match = await self.bot.match_manager.get_match(payload.guild_id, payload.match_name)
-        r6view = R6View(payload=payload, match=match)
+        r6view = R6View(payload=payload, match=match, bot=self.bot)
+        
+        # Need to initialise these outside of the R6View.__init__, since R6View._set_order() is async
+        await r6view._set_order()
+        r6view.init_components()
 
         tc = self.bot.get_channel(payload.text_channel_id)
         await tc.send(view=r6view)
 
-    def _select_captains(self, players: List[int], mode: CaptSelect) -> Tuple[int, int]:
+    async def _select_captains(self, *, guild_id: int, players: List[int], mode: CaptSelect) -> Tuple[int, int]:
         match mode:
             case CaptSelect.RANDOM:
                 return tuple(random.sample(players, 2))
             case CaptSelect.RATING:
-                # TODO: RATING SYSTEM (for now, captain selection is fully random)
-                return tuple(random.sample(players, 2))
+                captains = sorted([
+                    await self.bot.stats_manager.get_or_create_player(
+                        guild_id=guild_id,
+                        user_id=_id
+                    ) for _id in players
+                ], key=lambda p: p.points, reverse=True)
+                return (captains[0].id, captains[1].id)
             case _:
                 raise ValueError(mode)
 
@@ -113,12 +120,15 @@ The following will happen BEFORE you get into the custom:
 
         # Craft payload to be dispatched on event
         if mode == CaptSelect.MANUAL:
-            captains = (
+            captains = tuple(
                 userlike.id for userlike in prematch_modal.manual_select.component.values
             )
         else:
-            captains = self._select_captains(
-                players=entry.players, mode=mode)
+            captains = await self._select_captains(
+                guild_id=guild_id,
+                players=entry.players,
+                mode=mode
+            )
         payload = PrematchPayload.parse({
             "guild_id": guild_id,
             "match_name": name,
@@ -129,8 +139,8 @@ The following will happen BEFORE you get into the custom:
         })
 
         # Dispatch and confirm
-        self.bot.dispatch(Events.PREMATCH_MODAL_DONE, payload)
-        await interaction.followup.send(content="Players will receive a match start notification in their DM shortly")
+        self.bot.dispatch(Event.PREMATCH_MODAL_DONE, payload)
+        await interaction.followup.send(content="Players will receive a match start notification in their DM shortly", ephemeral=True)
 
 
 async def setup(bot):
