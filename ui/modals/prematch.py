@@ -99,6 +99,9 @@ class PreMatchModal(discord.ui.Modal):
             assert isinstance(self.queue.component, discord.ui.Select)
             assert isinstance(self.manual_select.component,
                               discord.ui.UserSelect)
+
+            if len(self.manual_select.component.values) != 2:
+                raise InvalidCaptainManualSelect
             for user in self.manual_select.component.values:
                 if user.bot:
                     raise UserIsBot(user)
@@ -114,10 +117,12 @@ class PreMatchModal(discord.ui.Modal):
             msg = "Cannot designate a bot user as captain."
         elif isinstance(error, InvalidUserSelected):
             msg = "Cannot designate a user as captain if they are not in the player list."
+        elif isinstance(error, InvalidCaptainManualSelect):
+            msg = "An invalid amount of captains were manually selected."
         else:
             msg = "An error has occurred. Unable to start match."
             traceback.print_exception(type(error), error, error.__traceback__)
 
-        await interaction.response.send_message(msg)
+        await interaction.response.send_message(msg, ephemeral=True)
         self.is_valid = False
         self.stop()

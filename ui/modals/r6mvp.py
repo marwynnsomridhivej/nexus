@@ -1,0 +1,72 @@
+import traceback
+from typing import List
+from exceptions import *
+
+
+import discord
+
+
+class R6MVPModal(discord.ui.Modal):
+    def __init__(self, *, view, captain_id: int):
+        super().__init__(title="Designate MVP")
+
+        from ..views import R6View
+        self._r6view: R6View = view
+
+        for item in self._init_components(captain_id):
+            self.add_item(item)
+
+    def _init_components(self, captain_id: int) -> List[discord.ui.Item]:
+        players: List[discord.Member] = [
+            self._r6view._bot
+            .get_guild(self._r6view._payload.guild_id)
+            .get_member(player_id)
+            for player_id in self._r6view._match.get_team_of_user(captain_id).players
+        ]
+
+        self.mvp_select = discord.ui.Label(
+            text="Designate Team MVP",
+            description="Select the member on your team that contributed the most to the team",
+            component=discord.ui.Select(
+                options=[
+                    discord.SelectOption(
+                        label=p.display_name,
+                        value=str(p.id)
+                    ) for p in players
+                ],
+                required=True,
+            )
+        )
+        return [self.mvp_select]
+
+    async def on_submit(self, interaction: discord.Interaction):
+        assert isinstance(self.mvp_select.component, discord.ui.Select)
+
+        captain_id = interaction.user.id
+        mvp_id = int(self.mvp_select.component.values[0])
+
+        try:
+            await self._r6view._bot.match_manager.designate_mvp(
+                interaction.guild_id,
+                self._r6view._payload.match_name,
+                captain_id,
+                mvp_id,
+            )
+        except MVPAlreadyAssigned:
+            return await interaction.response.send_message(
+                "You have already designated an MVP for your team",
+                ephemeral=True
+            )
+
+        # Update local MatchEntry instance attached to R6View
+        await self._r6view._update_match()
+
+        await interaction.response.send_message(
+            content=f"Captain <@{captain_id}> has designated <@{mvp_id}> as the team's MVP",
+            delete_after=10.0
+        )
+
+    async def on_error(self, interaction: discord.Interaction, error: Exception):
+        msg = "An error has occurred. Unable to designate MVP."
+        traceback.print_exception(type(error), error, error.__traceback__)
+        await interaction.response.send_message(msg)

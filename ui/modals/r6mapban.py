@@ -1,0 +1,75 @@
+import random
+import traceback
+from typing import List
+
+import discord
+
+from matchmanager import R6Map
+
+
+class R6MapBanModal(discord.ui.Modal):
+    def __init__(self, *, view):
+        super().__init__(title="Ban Map")
+
+        from ..views import R6View
+        self._r6view: R6View = view
+
+        for item in self._init_components():
+            self.add_item(item)
+
+    def _init_components(self) -> List[discord.ui.Item]:
+        self.map_ban = discord.ui.Label(
+            text="Ban Map",
+            description="Select a map to ban",
+            component=discord.ui.Select(
+                options=[
+                    discord.SelectOption(
+                        label=r6map.replace("_", " ").title(),
+                        value=r6map.value
+                    ) for r6map in self._r6view.map_pool if r6map not in self._r6view._match.banned_maps
+                ],
+                required=True,
+            )
+        )
+        return [self.map_ban]
+
+    async def on_submit(self, interaction: discord.Interaction):
+        assert isinstance(self.map_ban.component, discord.ui.Select)
+
+        captain_id = interaction.user.id
+        map_banned = R6Map(self.map_ban.component.values[0])
+        map_string = map_banned.replace("_", " ").title()
+
+        # Use MatchManager.ban_map to write to disk
+        await self._r6view._bot.match_manager.ban_map(
+            interaction.guild_id,
+            self._r6view._payload.match_name,
+            captain_id,
+            map_banned,
+        )
+
+        # Update local MatchEntry instance attached to R6View
+        await self._r6view._update_match()
+
+        # Check if we have banned every map but one and set it to the chosen map
+        maps_remaining = [
+            _map for _map in self._r6view.map_pool if _map not in self._r6view._match.banned_maps
+        ]
+        if len(maps_remaining) == 3:
+            await self._r6view._bot.match_manager.select_map(
+                interaction.guild_id,
+                self._r6view._payload.match_name,
+                random.choice(maps_remaining),
+            )
+            # Need to update local MatchEntry instance again
+            await self._r6view._update_match()
+
+        await interaction.response.send_message(
+            content=f"Captain <@{captain_id}> has banned **{map_string}**",
+            delete_after=10.0
+        )
+
+    async def on_error(self, interaction: discord.Interaction, error: Exception):
+        msg = "An error has occurred. Unable to ban map."
+        traceback.print_exception(type(error), error, error.__traceback__)
+        await interaction.response.send_message(msg)

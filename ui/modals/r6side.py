@@ -3,10 +3,12 @@ from typing import List
 
 import discord
 
+from matchmanager import R6Side
 
-class R6DraftModal(discord.ui.Modal):
+
+class R6SideModal(discord.ui.Modal):
     def __init__(self, *, view):
-        super().__init__(title="Draft Player")
+        super().__init__(title="Starting Side Selection")
 
         from ..views import R6View
         self._r6view: R6View = view
@@ -15,44 +17,44 @@ class R6DraftModal(discord.ui.Modal):
             self.add_item(item)
 
     def _init_components(self) -> List[discord.ui.Item]:
-        self.draft = discord.ui.Label(
-            text="Draft Player",
-            description="Select a player to draft",
+        self.side_select = discord.ui.Label(
+            text="Starting Side Selection",
+            description="Select whether your team would like to attack or defend first",
             component=discord.ui.Select(
                 options=[
                     discord.SelectOption(
-                        label=name,
-                        value=_id
-                    ) for name, _id in self._r6view._get_draftable()
+                        label=side.title(),
+                        value=side.value
+                    ) for side in [R6Side.ATTACKER, R6Side.DEFENDER]
                 ],
                 required=True,
             ),
         )
-        return [self.draft]
+        return [self.side_select]
 
     async def on_submit(self, interaction: discord.Interaction):
-        assert isinstance(self.draft.component, discord.ui.Select)
+        assert isinstance(self.side_select.component, discord.ui.Select)
 
         captain_id = interaction.user.id
-        drafted_id = int(self.draft.component.values[0])
+        choice = self.side_select.component.values[0]
 
-        # Use MatchManager.draft to write to disk
-        await self._r6view._bot.match_manager.draft_player(
+        # Set starting side according to selection
+        await self._r6view._bot.match_manager.select_starting_side(
             interaction.guild_id,
             self._r6view._payload.match_name,
             captain_id,
-            drafted_id
+            R6Side(choice)
         )
 
         # Update local MatchEntry instance attached to R6View
         await self._r6view._update_match()
 
         await interaction.response.send_message(
-            content=f"Captain <@{captain_id}> has drafted <@{drafted_id}>",
+            content=f"Captain <@{captain_id}>'s team will start as **{choice.lower()}s**.",
             delete_after=10.0
         )
 
     async def on_error(self, interaction: discord.Interaction, error: Exception):
-        msg = "An error has occurred. Unable to draft player."
+        msg = "An error has occurred. Unable to select starting side."
         traceback.print_exception(type(error), error, error.__traceback__)
         await interaction.response.send_message(msg)
