@@ -1,10 +1,15 @@
 __all__ = (
+    "InvalidCaptainManualSelect",
     "InvalidUserSelected",
     "UserIsBot",
 )
 
 
 import discord
+
+
+class InvalidCaptainManualSelect(Exception):
+    pass
 
 
 class InvalidUserSelected(Exception):
