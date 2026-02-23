@@ -1,7 +1,10 @@
+from typing import List
+
 from base import ManagerBase
 from exceptions import PlayerDoesNotExist
 
 from .stats import StatsPlayer, StatsWrapper
+from matchmanager import MatchTeam
 
 __all__ = (
     "StatsManager",
@@ -26,9 +29,13 @@ class StatsManager(ManagerBase):
             player = sgc.get(user_id, throw=True)
         except PlayerDoesNotExist:
             player = sgc.create(user_id)
+            await self.write(wrapper)
 
-        await self.write(wrapper)
         return player
+    
+    async def get_guild_players(self, guild_id: int) -> List[StatsPlayer]:
+        wrapper = await self._get_or_create_wrapper()
+        return [player for player in wrapper.get_or_create(guild_id).data.values()]
 
     async def reset_player(self, *, guild_id: int, user_id: int) -> None:
         wrapper = await self._get_or_create_wrapper()
@@ -38,4 +45,10 @@ class StatsManager(ManagerBase):
     async def delete_player(self, *, guild_id: int, user_id: int) -> None:
         wrapper = await self._get_or_create_wrapper()
         wrapper.get_or_create(guild_id).delete(user_id)
+        await self.write(wrapper)
+
+    async def award_team(self, *, guild_id: int, team: MatchTeam):
+        wrapper = await self._get_or_create_wrapper()
+        for player_id in team.players:
+            wrapper.get_or_create(guild_id).award(player_id, team.mvp_id, team.win)
         await self.write(wrapper)
