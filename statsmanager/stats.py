@@ -95,7 +95,7 @@ class StatsGuildContainer(WrapperBase):
             raise PlayerDoesNotExist(user_id)
         return data
 
-    def create(self, user_id: int) -> None:
+    def create(self, user_id: int) -> "StatsPlayer":
         """Create a StatsPlayer with specified user_id
 
         Args:
@@ -103,10 +103,14 @@ class StatsGuildContainer(WrapperBase):
 
         Raises:
             PlayerAlreadyExists: A StatsPlayer already exists for the specified user
+
+        Returns:
+            StatsPlayer: The newly created StatsPlayer instance for the specified user
         """
         if self.__data.get(user_id) is not None:
             raise PlayerAlreadyExists(user_id)
         self.__data[user_id] = StatsPlayer.create_zeroed(user_id)
+        return self.__data[user_id]
 
     def delete(self, user_id: int) -> None:
         """Deletes a player's stats entry entirely (NOT RESET)
@@ -120,6 +124,22 @@ class StatsGuildContainer(WrapperBase):
         if self.__data.get(user_id) is None:
             raise PlayerDoesNotExist(user_id)
         del self.__data[user_id]
+
+    def award(self, user_id: int, mvp_id: int, win: bool) -> None:
+        """Awards the specified player points for winning or losing a match
+
+        Args:
+            user_id (int): The ID of the player
+            mvp_id (int): The ID of the team's MVP
+            win (bool): Whether or not the player was on the winning team
+        """
+        try:
+            player = self.get(user_id, throw=True)
+        except PlayerDoesNotExist:
+            player = self.create(user_id)
+
+        func = player.win if win else player.lose
+        func(user_id == mvp_id)
 
     @property
     def players(self) -> List["StatsPlayer"]:
@@ -163,7 +183,17 @@ class StatsPlayer(WrapperBase):
             mvp (bool, optional): Whether or not the player was the team MVP. Defaults to False.
         """
         self.wins += 1
-        self.points += 5 if mvp else 2
+
+        # Default point gain per win
+        self.points += 2
+
+        if mvp:
+            # 2 bonus points, and MVP designation
+            self.points += 1
+            self.times_mvp += 1
+
+        if self.points > self.max_points:
+            self.max_points = self.points
 
     def lose(self, mvp: bool = False) -> None:
         """Awards a loss to the player and adjusts values accordingly
@@ -172,7 +202,14 @@ class StatsPlayer(WrapperBase):
             mvp (bool, optional): Whether or not the player was the team MVP. Defaults to False.
         """
         self.losses += 1
-        self.points -= 1 if mvp else 2
+
+        # Default point loss per loss
+        self.points -= 1
+
+        if mvp:
+            # Add 1 bonus point to negate the points lost, and MVP designation
+            self.points += 1
+            self.times_mvp += 1
 
     def reset(self) -> None:
         """Reset a player's win, loss, mvp, and points data
@@ -189,7 +226,7 @@ class StatsPlayer(WrapperBase):
 
     @property
     def wl_ratio(self) -> Decimal:
-        return Decimal("{:.2f}".format(self.wins / self.losses))
+        return Decimal("{:.2f}".format(self.wins / self.matches_played)) if self.matches_played > 0 else Decimal()
 
     def serialise(self) -> dict:
         """Convert StatsPlayer instance representation into a dict
@@ -217,7 +254,7 @@ class StatsPlayer(WrapperBase):
             StatsPlayer: The created zeroed instance
         """
         return cls.parse({
-            "user_id":      user_id,
+            "id":      user_id,
             "wins":         0,
             "losses":       0,
             "times_mvp":    0,
