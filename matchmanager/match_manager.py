@@ -1,10 +1,11 @@
 from datetime import datetime
 
 from base import ManagerBase
+from event import PrematchPayload
 from exceptions import *
 
+from .enums import *
 from .match import *
-from .payload import PrematchPayload
 
 
 class MatchManager(ManagerBase):
@@ -17,12 +18,19 @@ class MatchManager(ManagerBase):
     async def _get_or_create_wrapper(self) -> MatchWrapper:
         return await super()._get_or_create_wrapper(cls=MatchWrapper)
 
+    def _get_starting_side(self, team: MatchTeam, captain_id: int, choice: R6Side) -> R6Side:
+        flip = {
+            R6Side.ATTACKER: R6Side.DEFENDER,
+            R6Side.DEFENDER: R6Side.ATTACKER,
+        }
+        return choice if team.captain_id == captain_id else flip[choice]
+
     async def create_match(self, *, payload: PrematchPayload) -> None:
         wrapper = await self._get_or_create_wrapper()
 
         # Init teams
-        team_a = MatchTeam.create_empty()
-        team_b = MatchTeam.create_empty()
+        team_a = MatchTeam.create_empty("A")
+        team_b = MatchTeam.create_empty("B")
 
         # Assign captains
         team_a.assign_captain(payload.captains[0])
@@ -57,17 +65,62 @@ class MatchManager(ManagerBase):
         wrapper = await self._get_or_create_wrapper()
         return wrapper.get(guild_id, throw=True).get(name, throw=True)
 
-    async def draft(self, guild_id: int, name: str, captain_id: int, player_id: int) -> None:
+    async def draft_player(self, guild_id: int, name: str, captain_id: int, player_id: int) -> None:
         wrapper = await self._get_or_create_wrapper()
         wrapper.get(guild_id, throw=True)\
             .get(name, throw=True)\
             .get_team_of_user(captain_id)\
-            .draft(player_id)
+            .draft_player(player_id)
+        await self.write(wrapper)
+
+    async def ban_map(self, guild_id: int, name: str, captain_id: int, choice: R6Map) -> None:
+        wrapper = await self._get_or_create_wrapper()
+        wrapper.get(guild_id, throw=True)\
+            .get(name, throw=True)\
+            .ban_map(captain_id, choice)
+        await self.write(wrapper)
+
+    async def select_map(self, guild_id: int, name: str, choice: R6Map) -> None:
+        wrapper = await self._get_or_create_wrapper()
+        wrapper.get(guild_id, throw=True)\
+            .get(name, throw=True)\
+            .set_map(choice)
+        await self.write(wrapper)
+
+    async def select_starting_side(self, guild_id: int, name: str, captain_id: int, choice: R6Side) -> None:
+        wrapper = await self._get_or_create_wrapper()
+        mgc = wrapper.get(guild_id, throw=True).get(name, throw=True)
+        mgc.team_a.starting_side = self._get_starting_side(
+            mgc.team_a, captain_id, choice)
+        mgc.team_b.starting_side = self._get_starting_side(
+            mgc.team_b, captain_id, choice)
+        await self.write(wrapper)
+
+    async def designate_mvp(self, guild_id: int, name: str, captain_id: int, mvp_id: int) -> None:
+        wrapper = await self._get_or_create_wrapper()
+        wrapper.get(guild_id, throw=True)\
+            .get(name, throw=True)\
+            .get_team_of_user(captain_id)\
+            .designate(mvp_id)
+        await self.write(wrapper)
+
+    async def set_winning_team(self, guild_id: int, name: str, captain_id: int) -> None:
+        wrapper = await self._get_or_create_wrapper()
+        wrapper.get(guild_id, throw=True)\
+            .get(name, throw=True)\
+            .designate_winner(captain_id)
+        await self.write(wrapper)
+
+    async def set_team_vc(self, guild_id: int, name: str, captain_id: int, vc_id: int) -> None:
+        wrapper = await self._get_or_create_wrapper()
+        wrapper.get(guild_id, throw=True)\
+            .get(name, throw=True)\
+            .get_team_of_user(captain_id).voice_channel_id = vc_id
         await self.write(wrapper)
 
     async def reset_draft(self, guild_id: int, name: str) -> None:
         wrapper = await self._get_or_create_wrapper()
-        wrapper.get(guild_id, throw=True)\
-            .get(name, throw=True)\
-            .reset_draft()
+        entry = wrapper.get(guild_id, throw=True).get(name, throw=True)
+        entry.reset_draft()
+        entry.map = None
         await self.write(wrapper)

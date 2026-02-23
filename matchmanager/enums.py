@@ -3,13 +3,12 @@ from typing import List
 
 __all__ = (
     "R6Map",
+    "R6Side",
 
     "R6_RANKED",
     "R6_QUICKMATCH",
     "R6_TDM",
     "R6_DUAL_FRONT",
-
-    "R6ViewOption",
 )
 
 
@@ -38,14 +37,19 @@ class R6Map(StrEnum):
     OUTBACK: str    = "outback"
     PLANE: str      = "presidential_plane"
     SKYSCRAPER: str = "skyscraper"
-    THEMEPARK: str  = "themepark"
+    THEMEPARK: str  = "theme_park"
     TOWER: str      = "tower"
     VILLA: str      = "villa"
     YACHT: str      = "yacht"
     # fmt: on
 
 
-R6_RANKED: List[str] = sorted([
+class R6Side(StrEnum):
+    ATTACKER = "attacker"
+    DEFENDER = "defender"
+
+
+R6_RANKED: List[R6Map] = sorted([
     R6Map.BORDER,
     R6Map.BANK,
     R6Map.KAFE,
@@ -64,7 +68,7 @@ R6_RANKED: List[str] = sorted([
     R6Map.VILLA,
 ])
 
-R6_QUICKMATCH: List[str] = sorted(R6_RANKED + [
+R6_QUICKMATCH: List[R6Map] = sorted(R6_RANKED + [
     R6Map.ALPHA,
     R6Map.BRAVO,
     R6Map.EMERALD,
@@ -75,7 +79,7 @@ R6_QUICKMATCH: List[str] = sorted(R6_RANKED + [
     R6Map.YACHT,
 ])
 
-R6_TDM: List[str] = sorted([
+R6_TDM: List[R6Map] = sorted([
     R6Map.BORDER,
     R6Map.CLUBHOUSE,
     R6Map.ALPHA,
@@ -88,8 +92,13 @@ R6_TDM: List[str] = sorted([
     R6Map.VILLA,
 ])
 
-R6_DUAL_FRONT: List[str] = sorted([
+R6_DUAL_FRONT: List[R6Map] = sorted([
     R6Map.DISTRICT,
+])
+
+# Manual selected map pool as agreed upon by NEXUS overwatch
+R6_NEXUS: List[R6Map] = sorted([
+    ...
 ])
 
 
@@ -97,20 +106,3 @@ R6_DUAL_FRONT: List[str] = sorted([
 for category in [R6_RANKED, R6_QUICKMATCH, R6_TDM, R6_DUAL_FRONT]:
     for _map in category:
         assert category.count(_map) == 1
-
-
-class R6ViewOption(StrEnum):
-    # Team draft by captains
-    DRAFT_A = "draft_a"
-    DRAFT_B = "draft_b"
-
-    # Map ban by captains
-    MAP_BAN_A = "map_a"
-    MAP_BAN_B = "map_b"
-
-    # End of match MVP designation by captains
-    MVP_A = "mvp_a"
-    MVP_B = "mvp_b"
-
-    # End of match summary and finalisation by queue owner
-    EOM = "set_match_result"

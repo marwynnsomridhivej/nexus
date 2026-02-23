@@ -178,11 +178,11 @@ class MatchEntry(WrapperBase):
         """
         return self.team_a if user_id in self.team_a.players else self.team_b
 
-    def designate_winner(self, name: str) -> None:
-        """Designate winner by team name. The losing team is also automatically set
+    def designate_winner(self, captain_id: int) -> None:
+        """Designate winner by captain_id. The losing team is also automatically set
 
         Args:
-            name (str): The name of the winner
+            captain_id (int): The ID of the captain on the winning team
 
         Raises:
             MatchFinalised: The match has been finalised and results cannot be modified
@@ -190,7 +190,7 @@ class MatchEntry(WrapperBase):
         if self.wins_set:
             raise MatchFinalised
 
-        self.team_a.win = self.team_a.name == name
+        self.team_a.win = self.team_a.captain_id == captain_id
         self.team_b.win = not self.team_a.win
 
     def designate_exceptional(self, mvp_id: int) -> None:
@@ -208,13 +208,58 @@ class MatchEntry(WrapperBase):
 
         self.get_team_of_user(mvp_id).designate(mvp_id)
 
+    def ban_map(self, captain_id: int, choice: R6Map) -> None:
+        """Ban a map and add it to the respective team's map banned list
+
+        Args:
+            captain_id (int): The ID of the captain of the team
+            choice (R6Map): The map to ban
+
+        Raises:
+            MapAlreadyBanned: The specified map has already been banned by one of the teams
+        """
+        if choice in self.banned_maps:
+            raise MapAlreadyBanned
+
+        self.get_team_of_user(captain_id).ban_map(choice)
+
+    def set_map(self, choice: R6Map) -> None:
+        """Sets the match's map to the choice provided
+
+        Args:
+            choice (R6Map): The map to be set
+
+        Raises:
+            MapAlreadyBanned: The specified map was banned by one of the teams
+        """
+        if choice in self.banned_maps:
+            raise MapAlreadyBanned
+
+        self.map = choice if isinstance(choice, R6Map) else R6Map(choice)
+
+    def reset_draft(self) -> None:
+        """Resets the complete draft state for both teams
+        """
+        for team in [self.team_a, self.team_b]:
+            team.reset_player_draft()
+            team.reset_map_bans()
+            team.reset_starting_side()
+
     @property
     def captains(self) -> List[int]:
         return [self.team_a.captain_id, self.team_b.captain_id]
 
     @property
+    def banned_maps(self) -> List[R6Map]:
+        return self.team_a.map_bans + self.team_b.map_bans
+
+    @property
     def has_map(self) -> bool:
-        return isinstance(self.map, R6Map)
+        return self.map is not None
+
+    @property
+    def sides_selected(self) -> bool:
+        return self.team_a.starting_side is not None and self.team_b.starting_side is not None
 
     @property
     def mvps_set(self) -> bool:
@@ -261,17 +306,25 @@ class MatchEntry(WrapperBase):
 
 class MatchTeam(WrapperBase):
     __slots__ = (
+        "name",
         "voice_channel_id",
         "captain_id",
         "players",
+        "map_bans",
+        "starting_side",
         "win",
         "mvp_id",
     )
 
     def __init__(self, data: dict):
+        assert data["name"] in ["A", "B"]
+
+        self.name: str = data["name"]
         self.voice_channel_id: Union[int, None] = data["voice_channel_id"]
         self.captain_id: Union[int, None] = data["captain_id"]
         self.players: List[int] = data["players"]
+        self.map_bans: List[R6Map] = data["map_bans"]
+        self.starting_side: Union[R6Side, None] = data["starting_side"]
         self.win: Union[bool, None] = data["win"]
         self.mvp_id: Union[int, None] = data["mvp_id"]
 
@@ -290,7 +343,7 @@ class MatchTeam(WrapperBase):
         self.captain_id = user_id
         self.players.append(user_id)
 
-    def draft(self, user_id: int) -> None:
+    def draft_player(self, user_id: int) -> None:
         """Drafts a player to the team by user ID
 
         Args:
@@ -303,6 +356,14 @@ class MatchTeam(WrapperBase):
             raise CaptainNotAssigned
 
         self.players.append(user_id)
+
+    def ban_map(self, choice: R6Map) -> None:
+        """Bans a map by name
+
+        Args:
+            choice (R6Map): The map to ban
+        """
+        self.map_bans.append(choice)
 
     def designate(self, user_id: int) -> None:
         """Designates a player on the team as the MVP
@@ -318,6 +379,21 @@ class MatchTeam(WrapperBase):
 
         self.mvp_id = user_id
 
+    def reset_player_draft(self) -> None:
+        """Resets the player draft state to default
+        """
+        self.players = [self.captain_id]
+
+    def reset_map_bans(self) -> None:
+        """Resets the map ban state to default
+        """
+        self.map_bans = []
+
+    def reset_starting_side(self) -> None:
+        """Resets the starting side state to default
+        """
+        self.starting_side = None
+
     def serialise(self) -> dict:
         """Convert MatchTeam instance representation into a dict
 
@@ -325,24 +401,30 @@ class MatchTeam(WrapperBase):
             dict: Dictionary representation of the MatchTeam instance
         """
         return {
+            "name":             self.name,
             "voice_channel_id": self.voice_channel_id,
             "captain_id":       self.captain_id,
             "players":          self.players,
+            "map_bans":         self.map_bans,
+            "starting_side":    self.starting_side,
             "win":              self.win,
             "mvp_id":           self.mvp_id,
         }
 
     @classmethod
-    def create_empty(cls) -> "MatchTeam":
+    def create_empty(cls, a_or_b: str) -> "MatchTeam":
         """Creates a blank MatchTeam instance
 
         Returns:
             MatchTeam: The created blank instance
         """
         return cls({
+            "name": a_or_b,
             "voice_channel_id": None,
             "captain_id": None,
             "players": [],
+            "map_bans": [],
+            "starting_side":  None,
             "win": None,
             "mvp_id": None,
         })
