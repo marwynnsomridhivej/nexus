@@ -39,6 +39,7 @@ class Config(object):
             "match_cog",
             "queue_cog",
             "stats_cog",
+            "monitoring_cog",
         ]]
 
         if not os.path.exists(self.data_loc):
