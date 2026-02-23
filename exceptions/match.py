@@ -5,12 +5,11 @@ __all__ = (
 
     "CaptainAlreadyAssigned",
     "CaptainNotAssigned",
+
+    "MapAlreadyBanned",
+
     "MVPAlreadyAssigned",
 )
-
-
-import errno
-import os
 
 
 class MatchAlreadyExists(Exception):
@@ -39,6 +38,10 @@ class CaptainAlreadyAssigned(Exception):
 
 
 class CaptainNotAssigned(Exception):
+    pass
+
+
+class MapAlreadyBanned(Exception):
     pass
 
 
