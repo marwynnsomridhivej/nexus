@@ -65,5 +65,5 @@ class ManagerBase(ABC):
         except FileNotFoundError:
             data = {}
             async with async_open(self.file_path, "w") as afile:
-                await afile.write(data)
+                await afile.write(str(data))
         return cls.parse(data)
