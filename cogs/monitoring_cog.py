@@ -19,6 +19,7 @@ class MonitoringCog(commands.Cog):
             self.listen_vc: Event.VC_LISTENER_ADD,
             self.unlisten_vc: Event.VC_LISTENER_REMOVE,
             self.reset_button_vc_move: Event.RESET_BUTTON_PRESSED,
+            self.queue_match_cleanup: Event.MATCH_FINALISED,
             self.delete_vcs: Event.MATCH_FINALISED,
         }
         for coro, event in _handlers.items():
@@ -103,6 +104,17 @@ class MonitoringCog(commands.Cog):
 
             # After moving everyone, THEN delete the VC
             await self.bot.get_channel(team.voice_channel_id).delete(reason=Reason.MATCH_FINALISED_DEL_TEMP)
+
+    async def queue_match_cleanup(self, payload: MatchFinalisedPayload) -> None:
+        await self.bot.queue_manager.delete_queue(
+            payload.guild_id,
+            payload.name,
+            payload.owner_id,
+        )
+        await self.bot.match_manager.delete_match(
+            payload.guild_id,
+            payload.name,
+        )
 
 
 async def setup(bot):
