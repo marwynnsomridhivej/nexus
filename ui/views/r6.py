@@ -148,7 +148,13 @@ class R6ViewButtons(discord.ui.ActionRow):
             button.disabled = True
             await self._set_disabled(interaction, label="Side Select", disabled=False)
             await self._r6view._bot.get_channel(self._r6view._payload.text_channel_id).send(
-                f"The selected map is: **{self._r6view._match.map.replace("_", "").title()}**",
+                f"The selected map is: **{self._r6view._match.map.replace("_", " ").title()}**",
+                delete_after=10.0
+            )
+
+            # Notify captain responsible for side select
+            await interaction.channel.send(
+                content=f"*It is now <@{self._r6view._op_draft_order[self._index["ban"]].id}>'s turn to choose what side their team starts on*",
                 delete_after=10.0
             )
 
@@ -160,7 +166,7 @@ class R6ViewButtons(discord.ui.ActionRow):
         if not self._is_captain(interaction):
             return await interaction.response.send_message(CANNED["captain"], ephemeral=True)
 
-        if self._r6view._op_draft_order[self._index["draft"]].id != interaction.user.id:
+        if self._r6view._op_draft_order[self._index["ban"]].id != interaction.user.id:
             return await interaction.response.send_message(CANNED["side"], ephemeral=True)
 
         side_modal = R6SideModal(view=self._r6view)
@@ -266,28 +272,37 @@ class R6View(discord.ui.LayoutView):
         self.add_item(container)
 
     async def _set_order(self) -> None:
-        # For:
-        #   Player Draft    --> LOWEST points goes first
-        #   Map Ban         --> HIGHEST points bans first
-        #   Starting Side   --> LOWEST points goes first (use draft[0])
+        #   sorted() will sort ascending by default (low to high)
+        #
+        #   DO NOT REVERSE (we want lower points in index 0)
+        #   For EVEN number of players in lobby:
+        #       Player Draft    --> LOWEST points goes first
+        #       Map Ban         --> HIGHEST points bans first
+        #       Starting Side   --> HIGHEST points goes first (use draft[0])
+        #
+        #   REVERSE (we want higher points in index 0)
+        #   For ODD number of players in lobby:
+        #       Player Draft    --> -1 goes first (HIGHEST points)
+        #       Map Ban         --> -1 goes first (HIGHEST points)
+        #       Starting Side   --> -1 goes first (HIGHEST points)
         self._draft_order = sorted([
             await self._bot.stats_manager.get_or_create_player(
                 guild_id=self._payload.guild_id,
                 user_id=_id,
             ) for _id in self._match.captains
-        ], key=lambda p: p.points)
-        self._op_draft_order = [self._draft_order[1], self._draft_order[0]]
+        ], key=lambda p: p.points, reverse=bool(self.playercount % 2))
 
-    def _get_draftable(self) -> List[Tuple[str, str]]:
-        return [
-            (self._bot.get_guild(
-                self._payload.guild_id
-            ).get_member(_id).display_name, str(_id))
+        # Reverse the draft order IF there is an EVEN number of players (true opposite)
+        # Otherwise, keep it same as draft order
+        self._op_draft_order = [
+            self._draft_order[1], self._draft_order[0]
+        ] if self.playercount % 2 == 0 else self._draft_order
 
-            for _id in self._payload.entry.players if
-            _id not in self._match.team_a.players and
-            _id not in self._match.team_b.players
-        ]
+        # TODO: Delete on live
+        if self.playercount % 2:
+            # For my sanity, ensure _draft_order and _op_draft_order are identical by index
+            assert self._draft_order[0] == self._op_draft_order[0]
+            assert self._draft_order[1] == self._op_draft_order[1]
 
     def _get_team_players_txt(self, team: MatchTeam) -> List[int]:
         txt = f"### Team {team.name}"
@@ -354,7 +369,7 @@ class R6View(discord.ui.LayoutView):
             items.append(starting_sides)
 
         # Always put disclaimer
-        disclaimer = "\n*Although everyone can click the buttons below, only " + \
+        disclaimer = "\n*-# Although everyone can click the buttons below, only " + \
             "team captains and the queue owner will be able to interact with them.*"
         items.append(disclaimer)
 
@@ -367,6 +382,7 @@ class R6View(discord.ui.LayoutView):
     async def _create_team_vcs(self) -> None:
         parent_vc = self._bot.get_channel(
             self._payload.voice_channel_id)
+        exclude_ids = self._match.captains + [self._payload.entry.owner_id]
         for offset, team in enumerate(self.teams):
             # Create and set team voice channel if it isn't already set
             # This should not be redone after a reset
@@ -377,8 +393,24 @@ class R6View(discord.ui.LayoutView):
                 vc = await coro(
                     name=f"{self._payload.match_name} - Team {team.name}",
                     reason=f"Automated team voice channel creation for match {self._payload.match_name}",
-                    position=parent_vc.position + offset,
+                    position=parent_vc.position + offset
                 )
+
+                # Set @everyone perms to no speaking
+                await vc.set_permissions(vc.guild.default_role, speak=False)
+
+                # Set perms for members of enemy team to not be able to join
+                # Does not apply to team captains and the queue owner
+                for player_id in self._payload.entry.players:
+                    member = vc.guild.get_member(player_id)
+
+                    if player_id in exclude_ids or player_id in team.players:
+                        # Allow speaking if they are a team member or captain or queue owner
+                        await vc.set_permissions(member, speak=True)
+                    else:
+                        # Don't allow opposing team members to see the other team's channel
+                        await vc.set_permissions(member, view_channel=False)
+
                 await self._bot.match_manager.set_team_vc(
                     self._payload.guild_id,
                     self._payload.match_name,
@@ -435,8 +467,10 @@ class R6View(discord.ui.LayoutView):
 
             # Dispatch match finalised to teardown vcs
             self._bot.dispatch(Event.MATCH_FINALISED, MatchFinalisedPayload.create(
-                self._payload.guild_id,
-                self._match,
+                guild_id=self._payload.guild_id,
+                name=self._payload.match_name,
+                owner_id=self._payload.entry.owner_id,
+                match_entry=self._match,
             ))
             return True
         return False
@@ -447,13 +481,33 @@ class R6View(discord.ui.LayoutView):
                 child.disabled = True
         await interaction.message.edit(view=self)
 
+    def other_captain_id(self, captain_id: int) -> int:
+        idx = self._match.captains.index(captain_id) - 1
+        return self._match.captains[idx]
+
+    @property
+    def playercount(self) -> int:
+        return len(self._payload.entry.players)
+
+    @property
+    def draftable_players(self) -> List[Tuple[str, str]]:
+        # [(player displayname, str(player id)), ...]
+        return [
+            (self._bot.get_guild(self._payload.guild_id).get_member(
+                _id).display_name, str(_id))
+
+            for _id in self._payload.entry.players if
+            _id not in self._match.team_a.players and
+            _id not in self._match.team_b.players
+        ]
+
     @property
     def teams(self) -> List[MatchTeam]:
         return [self._match.team_a, self._match.team_b]
 
     @property
     def finished_draft(self) -> bool:
-        return not bool(self._get_draftable())
+        return not bool(self.draftable_players)
 
     @property
     def finished_map_bans(self) -> bool:
