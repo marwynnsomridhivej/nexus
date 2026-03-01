@@ -49,7 +49,7 @@ The following will happen BEFORE you get into the custom:
 
         match = await self.bot.match_manager.get_match(payload.guild_id, payload.match_name)
         r6view = R6View(payload=payload, match=match, bot=self.bot)
-        
+
         # Need to initialise these outside of the R6View.__init__, since R6View._set_order() is async
         await r6view._set_order()
         r6view.init_components()
@@ -79,7 +79,7 @@ The following will happen BEFORE you get into the custom:
         owned_queues = await self.bot.queue_manager.get_queues_owned_by(guild_id, owner_id)
         valid_owned_queues = {
             name: entry for name, entry in owned_queues.items()
-            if len(entry.players) == entry.max_players
+            if len(entry.players) >= 2
             and not entry.in_progress
         }
         if not valid_owned_queues:
