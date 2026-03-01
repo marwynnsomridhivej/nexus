@@ -270,6 +270,10 @@ class QueueEntry(WrapperBase):
 
         self.in_progress = state
 
+    @property
+    def full(self) -> bool:
+        return len(self.players) >= self.max_players
+
     def serialise(self) -> dict:
         """Convert QueueEntry instance representation into a dict
 
