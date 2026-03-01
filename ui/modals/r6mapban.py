@@ -69,6 +69,12 @@ class R6MapBanModal(discord.ui.Modal):
             delete_after=10.0
         )
 
+        if not self._r6view.finished_map_bans:
+            await interaction.channel.send(
+                content=f"*It is now <@{self._r6view.other_captain_id(captain_id)}>'s turn to select a map to ban*",
+                delete_after=10.0
+            )
+
     async def on_error(self, interaction: discord.Interaction, error: Exception):
         msg = "An error has occurred. Unable to ban map."
         traceback.print_exception(type(error), error, error.__traceback__)
