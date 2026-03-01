@@ -7,6 +7,9 @@ __all__ = (
 
 
 class Event(StrEnum):
+    # Dispatched after a queue is filled to maximum occupancy
+    QUEUE_FILLED = "queue_filled"
+    
     # Dispatched after queue owner submits prematch modal successfully
     PREMATCH_MODAL_DONE = "prematch_modal_done"
 
