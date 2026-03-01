@@ -188,7 +188,7 @@ class StatsPlayer(WrapperBase):
         self.points += 2
 
         if mvp:
-            # 2 bonus points, and MVP designation
+            # 1 bonus point, and MVP designation
             self.points += 1
             self.times_mvp += 1
 
