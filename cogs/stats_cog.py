@@ -1,11 +1,11 @@
 from typing import Coroutine, Dict
 
-from discord import app_commands
 import discord
+from discord import app_commands
 from discord.ext import commands
 
 from event import Event, MatchFinalisedPayload
-from statsmanager import StatsPlayer
+from ui import LeaderboardView
 
 
 class StatsCog(commands.Cog):
@@ -22,14 +22,6 @@ class StatsCog(commands.Cog):
 
         print("[StatsCog] Successfully loaded")
 
-    def _player_lb_text(self, guild_id: int, player: StatsPlayer) -> str:
-        return " ".join([
-            f"1. {self.bot.get_guild(guild_id).get_member(player.id).display_name}",
-            f"[{player.points} pts | {player.max_points} peak]",
-            f"[{player.wins}W/{player.losses}L | {player.wl_ratio * 100}% WR]",
-            f"[MVP x{player.times_mvp}]",
-        ])
-
     async def calc_stats(self, payload: MatchFinalisedPayload):
         for team in [payload.winning_team, payload.losing_team]:
             await self.bot.stats_manager.award_team(
@@ -43,10 +35,17 @@ class StatsCog(commands.Cog):
         if not players:
             return await interaction.response.send_message(content="No players are currently ranked in this server", ephemeral=True)
 
-        content = "\n".join(["## Server Leaderboard"] + [
-            self._player_lb_text(interaction.guild_id, player) for player in sorted(players, key=lambda p: p.points, reverse=True)
-        ])
-        await interaction.response.send_message(content=content)
+        lbview = LeaderboardView(
+            source_interaction=interaction,
+            data=sorted(players, key=lambda p: p.points, reverse=True)
+        )
+        lbview.init_components()
+
+        await interaction.response.send_message(
+            view=lbview,
+            allowed_mentions=discord.AllowedMentions.none(),
+            ephemeral=True
+        )
 
 
 async def setup(bot):
