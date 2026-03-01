@@ -26,6 +26,10 @@ class QueueManager(ManagerBase):
         return await super()._get_or_create_wrapper(cls=QueueWrapper)
 
     async def create_queue(self, *, guild_id: int, owner_id: int, name: str, queue_type: QueueType) -> None:
+        # Do not allow for name to be longer than 100 characters (discord.SelectOption limit)
+        if len(name) > 100:
+            raise ValueError(name)
+        
         wrapper = await self._get_or_create_wrapper()
         queue_entry_data = {
             "owner_id":     owner_id,
@@ -44,12 +48,12 @@ class QueueManager(ManagerBase):
         wrapper.get_or_create(guild_id).delete(name, user_id)
         await self.write(wrapper)
 
-    async def join_user_to_queue(self, guild_id: int, user_id: int, name: str) -> None:
+    async def join_user_to_queue(self, guild_id: int, user_id: int, name: str) -> QueueEntry:
         wrapper = await self._get_or_create_wrapper()
-        wrapper.get_or_create(guild_id)\
-            .get(name.lower(), throw=True)\
-            .add_player(user_id)
+        q = wrapper.get_or_create(guild_id).get(name.lower(), throw=True)
+        q.add_player(user_id)
         await self.write(wrapper)
+        return q
 
     async def leave_user_from_queue(self, guild_id: int, user_id: int, name: str) -> None:
         wrapper = await self._get_or_create_wrapper()
