@@ -1,4 +1,5 @@
 __all__ = (
+    "FeedbackView",
     "LeaderboardView",
     "MatchStartDMView",
     "QueueListView",
@@ -6,6 +7,7 @@ __all__ = (
 )
 
 
+from .feedback import FeedbackView
 from .leaderboard import LeaderboardView
 from .match_start_dm import MatchStartDMView
 from .queue_list import QueueListView

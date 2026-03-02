@@ -1,5 +1,7 @@
 __all__ = (
     # Modals
+    "FeedbackModal",
+
     "PreMatchModal",
 
     "R6DraftModal",
@@ -12,9 +14,12 @@ __all__ = (
 
     # Util
     "R6URL",
+    "FeedbackType",
+    "FEEDBACK_TYPES",
 )
 
 
+from .feedback_type import *
 from .modals import *
 from .urls import *
 from .views import *

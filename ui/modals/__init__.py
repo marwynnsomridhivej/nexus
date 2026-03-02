@@ -1,4 +1,6 @@
 __all__ = (
+    "FeedbackModal",
+
     "PreMatchModal",
 
     "R6ConfirmationModal",
@@ -8,6 +10,9 @@ __all__ = (
     "R6ResultModal",
     "R6SideModal",
 )
+
+# Feedback
+from .feedback import FeedbackModal
 
 # Before officially starting an R6 Match
 from .prematch import PreMatchModal
