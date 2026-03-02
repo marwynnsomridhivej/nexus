@@ -21,13 +21,13 @@ class FeedbackView(discord.ui.LayoutView):
                 discord.ui.TextDisplay(
                     content="\n".join([
                         "### User Information",
-                        f"- User: {self.interaction.user.mention} [`{self.interaction.user.id}`]",
-                        f"- Guild: {self.interaction.guild.name} [`{self.interaction.guild_id}`]",
-                        f"- Sent at: {self.interaction.created_at.strftime(r"%d/%m/%Y, %H:%M:%S")}",
+                        f"- User: {self.interaction.user.mention} | `{self.interaction.user.id}`",
+                        f"- Guild: `{self.interaction.guild.name}` | `{self.interaction.guild_id}`",
+                        f"- Sent at: `{self.interaction.created_at.astimezone().strftime(r"%d/%m/%Y, %H:%M:%S")}`",
                     ]),
                 ),
                 accessory=discord.ui.Thumbnail(
-                    self.interaction.user.default_avatar.url
+                    self.interaction.user.avatar.url if self.interaction.user.avatar is not None else self.interaction.user.default_avatar
                 )
             ),
             discord.ui.Separator(),
