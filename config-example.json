@@ -2,6 +2,7 @@
     "token": "BOT_TOKEN_HERE",
     "owner_ids": [123, 456, 789],
     "nexus_guild_id": 12345,
-    "data_loc": "./data",
-    "command_prefix": "/"
+    "data_dir": "./data",
+    "command_prefix": "/",
+    "log_dir": "./logs"
 }

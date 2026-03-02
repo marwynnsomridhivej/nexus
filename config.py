@@ -8,7 +8,8 @@ class Config(object):
 
         "owner_ids",
         "nexus_guild_id",
-        "data_loc",
+        "data_dir",
+        "log_dir",
         "command_prefix",
 
         "cogs",
@@ -22,7 +23,8 @@ class Config(object):
             "token":            self.__token,
             "owner_ids":        self.owner_ids,
             "nexus_guild_id":   self.nexus_guild_id,
-            "data_loc":         self.data_loc,
+            "data_dir":         self.data_dir,
+            "log_dir":          self.log_dir,
             "command_prefix":   self.command_prefix,
         }
 
@@ -32,7 +34,8 @@ class Config(object):
         self.__token = data["token"]
         self.owner_ids = set(data["owner_ids"])
         self.nexus_guild_id = data["nexus_guild_id"]
-        self.data_loc = data["data_loc"]
+        self.data_dir = data["data_dir"]
+        self.log_dir = data["log_dir"]
         self.command_prefix = data["command_prefix"]
 
         self.cogs = [f"cogs.{cog}" for cog in [
@@ -42,8 +45,11 @@ class Config(object):
             "monitoring_cog",
         ]]
 
-        if not os.path.exists(self.data_loc):
-            os.mkdir(self.data_loc)
+        if not os.path.exists(self.data_dir):
+            os.mkdir(self.data_dir)
+
+        if not os.path.exists(self.log_dir):
+            os.mkdir(self.log_dir)
 
     def save(self) -> None:
         with open("./config.json", "w") as file:

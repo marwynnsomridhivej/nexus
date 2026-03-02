@@ -1,10 +1,11 @@
 # Directories
 db
+logs
 venv
 __pycache__
 
 # File extensions
-
+.log
 
 # Specific files
 config.json
