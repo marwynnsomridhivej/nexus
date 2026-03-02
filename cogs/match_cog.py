@@ -5,7 +5,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
-from event import Event, PrematchPayload
+from event import *
 from exceptions import *
 from queuemanager import CaptSelect
 from ui import *
@@ -18,15 +18,15 @@ class MatchCog(commands.GroupCog, name="match"):
 
     async def cog_load(self):
         _handlers: Dict[Coroutine, Event] = {
-            self._prematch_dm: Event.PREMATCH_MODAL_DONE,
             self._init_match_data: Event.PREMATCH_MODAL_DONE,
+            self._prematch_dm: Event.PREMATCH_DM_READY_SEND,
         }
         for coro, event in _handlers.items():
             self.bot.add_listener(coro, f"on_{event}")
 
         self.bot.logger.info("[MatchCog] Successfully loaded")
 
-    async def _prematch_dm(self, payload: PrematchPayload) -> None:
+    async def _prematch_dm(self, payload: PrematchDMPayload) -> None:
         # TODO: Craft a message to be sent to captains once post-match flow is established
         for user_id in payload.entry.players:
             message = await self.bot.get_user(user_id).send(view=MatchStartDMView(
@@ -39,14 +39,25 @@ class MatchCog(commands.GroupCog, name="match"):
         await self.bot.match_manager.create_match(payload=payload)
 
         match = await self.bot.match_manager.get_match(payload.guild_id, payload.match_name)
-        r6view = R6View(payload=payload, match=match, bot=self.bot)
 
-        # Need to initialise these outside of the R6View.__init__, since R6View._set_order() is async
+        # Create thread channel
+        tc = self.bot.get_channel(payload.text_channel_id)
+        thread_channel = await tc.create_thread(
+            name=f"{payload.match_name} - {payload.entry.type}",
+        )
+
+        # Edit in place payload text channel ID to be thread channel now
+        payload.switch_to_thread_channel(thread_channel.id)
+
+        # Initialise R6View
+        r6view = R6View(payload=payload, match=match, bot=self.bot)
         await r6view._set_order()
         r6view.init_components()
 
-        tc = self.bot.get_channel(payload.text_channel_id)
-        await tc.send(view=r6view)
+        # Send R6View to thread channel
+        message = await thread_channel.send(view=r6view)
+        self.bot.dispatch(Event.PREMATCH_DM_READY_SEND,
+                          PrematchDMPayload.from_prematch_payload(payload, message))
 
     async def _select_captains(self, *, guild_id: int, players: List[int], mode: CaptSelect) -> Tuple[int, int]:
         match mode:
@@ -74,7 +85,7 @@ class MatchCog(commands.GroupCog, name="match"):
             and not entry.in_progress
         }
         if not valid_owned_queues:
-            await interaction.response.send_message("Unable to start a match, as you are not the owner of any startable queues.")
+            await interaction.response.send_message(content="Unable to start a match, as you are not the owner of any startable queues.", ephemeral=True)
             return
 
         prematch_modal = PreMatchModal(self.bot, valid_owned_queues)
