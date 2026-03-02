@@ -1,5 +1,6 @@
 import json
 import os
+from typing import Set
 
 
 class Config(object):
@@ -32,7 +33,7 @@ class Config(object):
         with open("./config.json", "r") as file:
             data = json.loads(file.read())
         self.__token = data["token"]
-        self.owner_ids = set(data["owner_ids"])
+        self.owner_ids: Set[int] = set(data["owner_ids"])
         self.nexus_guild_id = data["nexus_guild_id"]
         self.data_dir = data["data_dir"]
         self.log_dir = data["log_dir"]
@@ -40,9 +41,10 @@ class Config(object):
 
         self.cogs = [f"cogs.{cog}" for cog in [
             "match_cog",
-            "queue_cog",
-            "stats_cog",
             "monitoring_cog",
+            "queue_cog",
+            "report_cog",
+            "stats_cog",
         ]]
 
         if not os.path.exists(self.data_dir):
