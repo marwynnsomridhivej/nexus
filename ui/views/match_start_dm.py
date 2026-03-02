@@ -2,12 +2,12 @@ from typing import List
 
 import discord
 
-from event import PrematchPayload
+from event import PrematchDMPayload
 from ui import R6URL
 
 
 class MatchStartDMView(discord.ui.LayoutView):
-    def __init__(self, *, guild: discord.Guild, payload: PrematchPayload):
+    def __init__(self, *, guild: discord.Guild, payload: PrematchDMPayload):
         super().__init__(timeout=None)
 
         self._guild = guild
@@ -21,12 +21,11 @@ class MatchStartDMView(discord.ui.LayoutView):
         items = []
 
         # Instructions
-        tc_direct = f"can be found in the message sent in <#{self._payload.text_channel_id}>"
         pregame_instr = discord.ui.TextDisplay("\n".join([
             f"### Pre-Game Instructions",
             f"1. Join the voice channel <#{self._payload.voice_channel_id}>",
 
-            f"1. Team captains will draft players one by one. Draft order {tc_direct}",
+            f"1. Team captains will draft players one by one",
             "  - -# If player count is EVEN, the lower rated captain will get to pick first, " +
             "and picks alternate until no players remain",
             "  - -# If player count is ODD, the higher rated captain will get to pick first, " +
@@ -38,7 +37,7 @@ class MatchStartDMView(discord.ui.LayoutView):
             "their own team's voice channel. Captains and the queue owner can travel " +
             "between both voice channels for administrative purposes only",
 
-            f"1. Team captains will alternate map bans until three maps remain. Map ban order {tc_direct}",
+            f"1. Team captains will alternate map bans until three maps remain",
             "  - -# The higher rated captain will get to ban first",
 
             f"1. The bot will randomly select a map from the three remaining maps " +
@@ -65,6 +64,7 @@ class MatchStartDMView(discord.ui.LayoutView):
         # Match Details (mode, players, captains)
         details = discord.ui.TextDisplay("\n".join([
             f"### Details",
+            f"- Draft Panel Message: {self._payload.message.jump_url}",
             f"- Mode: `{self._entry.type}`",
             f"- Players: `{len(self._entry.players)}/{self._entry.max_players}`",
             "\n".join([
@@ -97,7 +97,7 @@ class MatchStartDMView(discord.ui.LayoutView):
                 f"{self._payload.match_name} in the server {self._guild.name}. " +
                 "If you received this message in error, please notify your server admin."
             ),
-            
+
             # Accent color
             accent_color=discord.Color.blurple(),
         )
