@@ -51,13 +51,9 @@ class QueueListView(Paginator):
     def init_components(self) -> None:
         container = discord.ui.Container(
             # Header section, name type and page
-            discord.ui.Section(
-                discord.ui.TextDisplay(
-                    content=f"## Queue List [Page {self.current_page + 1}/{self.max_pages}]",
-                ),
-                accessory=discord.ui.Thumbnail(R6URL.ICON)
+            discord.ui.TextDisplay(
+                content=f"## Queue List [Page {self.current_page + 1}/{self.max_pages}]",
             ),
-            discord.ui.Separator(),
 
             # Actual part that displays the queue details
             *self.paginate_text_display(),

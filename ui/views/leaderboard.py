@@ -65,14 +65,10 @@ class LeaderboardView(Paginator):
 
     def init_components(self) -> None:
         container = discord.ui.Container(
-            # Header section, name type and page
-            discord.ui.Section(
-                discord.ui.TextDisplay(
-                    content=f"## Leaderboard [Page {self.current_page + 1}/{self.max_pages}]",
-                ),
-                accessory=discord.ui.Thumbnail(R6URL.ICON)
+            # Header, name type and page
+            discord.ui.TextDisplay(
+                content=f"## Leaderboard [Page {self.current_page + 1}/{self.max_pages}]",
             ),
-            discord.ui.Separator(),
 
             # Actual part that displays leaderboard
             *self.paginate_text_display(),
