@@ -20,6 +20,7 @@ class MonitoringCog(commands.Cog):
             self.delete_vcs: Event.MATCH_FINALISED,
             self.delete_dms: Event.MATCH_FINALISED,
             self.explicit_delete_dms: Event.PREMATCH_DM_DELETE,
+            self.thread_cleanup: Event.THREAD_CLEANUP,
         }
         for coro, event in _handlers.items():
             self.bot.add_listener(coro, f"on_{event}")
@@ -107,6 +108,18 @@ class MonitoringCog(commands.Cog):
 
     async def explicit_delete_dms(self, payload: DMDeletePayload) -> None:
         await self._delete_dms(payload.guild_id, payload.players)
+
+    async def thread_cleanup(self, payload: PrematchPayload) -> None:
+        thread_channel: discord.Thread = self.bot.get_channel(
+            payload.text_channel_id)
+        if not isinstance(thread_channel, discord.Thread):
+            self.bot.logger.error(
+                f"Could not find thread channel with ID {payload.text_channel_id}")
+
+        await thread_channel.edit(
+            archived=True,
+            locked=True,
+        )
 
 
 async def setup(bot):

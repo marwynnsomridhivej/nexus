@@ -1,5 +1,7 @@
 from typing import List, Tuple
 
+import discord
+
 from base import WrapperBase
 from matchmanager import MatchEntry, MatchTeam
 from queuemanager import QueueEntry
@@ -8,6 +10,7 @@ __all__ = (
     "QueueFilledPayload",
 
     "PrematchPayload",
+    "PrematchDMPayload",
     "DMDeletePayload",
 
     "VCResetPayload",
@@ -91,6 +94,9 @@ class PrematchPayload(WrapperBase):
     def entry(self) -> QueueEntry:
         return self.__entry
 
+    def switch_to_thread_channel(self, thread_id: int) -> None:
+        self.__text_channel_id = thread_id
+
     def serialise(self) -> dict:
         return {
             "guild_id": self.__guild_id,
@@ -100,6 +106,31 @@ class PrematchPayload(WrapperBase):
             "captains": self.__captains,
             "entry": self.__entry,
         }
+
+
+class PrematchDMPayload(PrematchPayload):
+    __slots__ = (
+        "__message",
+    )
+
+    def __init__(self, data: dict):
+        super().__init__(data)
+        self.__message: discord.Message = data["message"]
+
+    @property
+    def message(self) -> discord.Message:
+        return self.__message
+
+    def serialise(self):
+        data = super().serialise()
+        data["message"] = self.__message
+        return data
+
+    @classmethod
+    def from_prematch_payload(cls, payload: PrematchPayload, message: discord.Message) -> "PrematchDMPayload":
+        data = payload.serialise()
+        data["message"] = message
+        return cls(data)
 
 
 class DMDeletePayload(WrapperBase):

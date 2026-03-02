@@ -13,6 +13,9 @@ class Event(StrEnum):
     # Dispatched after queue owner submits prematch modal successfully
     PREMATCH_MODAL_DONE = "prematch_modal_done"
 
+    # Dispatched after the prematch DM is ready to be sent
+    PREMATCH_DM_READY_SEND = "prematch_dm_ready_send"
+
     # Dispatched after cancel button was pressed to delete prematch DM message
     PREMATCH_DM_DELETE = "prematch_dm_delete"
 
@@ -21,6 +24,9 @@ class Event(StrEnum):
 
     # Dispatched after match has been finalised (win + mvp set for both teams)
     MATCH_FINALISED = "match_finalised"
+
+    # Dispatched after match finalised to lock and close the thread
+    THREAD_CLEANUP = "postmatch_thread_cleanup"
 
 
 class Reason(StrEnum):
