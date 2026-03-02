@@ -1,4 +1,5 @@
-from typing import Coroutine, Dict
+import traceback
+from typing import Coroutine, Dict, List
 
 import discord
 from discord.ext import commands
@@ -11,23 +12,21 @@ class MonitoringCog(commands.Cog):
     def __init__(self, bot):
         from bot import Bot
         self.bot: Bot = bot
-        self.__data = {}
 
     async def cog_load(self):
         _handlers: Dict[Coroutine, Event] = {
-            self._listen: "voice_state_update",
-            self.listen_vc: Event.VC_LISTENER_ADD,
-            self.unlisten_vc: Event.VC_LISTENER_REMOVE,
             self.reset_button_vc_move: Event.RESET_BUTTON_PRESSED,
             self.queue_match_cleanup: Event.MATCH_FINALISED,
             self.delete_vcs: Event.MATCH_FINALISED,
+            self.delete_dms: Event.MATCH_FINALISED,
+            self.explicit_delete_dms: Event.PREMATCH_DM_DELETE,
         }
         for coro, event in _handlers.items():
             self.bot.add_listener(coro, f"on_{event}")
 
-        print("[MonitoringCog] Successfully loaded")
+        self.bot.logger.info("[MonitoringCog] Successfully loaded")
 
-    async def _util_move_back_to_lobby(self, guild_id: int, lobby_vc_id: int, team: MatchTeam, reason: Reason) -> None:
+    async def _move_team_to_lobby_vc(self, guild_id: int, lobby_vc_id: int, team: MatchTeam, reason: Reason) -> None:
         lobby_vc_channel = self.bot.get_channel(lobby_vc_id)
 
         # Try to move all the players in the team back to the "lobby VC"
@@ -39,49 +38,35 @@ class MonitoringCog(commands.Cog):
                 continue
             await member.move_to(lobby_vc_channel, reason=reason)
 
-    async def _listen(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState) -> None:
-        # Ensure the new channel exists
-        if after.channel is None:
-            return
-
-        # Ensure the channel is one of the ones we are already listening to
-        if self.__data.get(after.channel.id) is None:
-            return
-
-        move_to_id = self.__data[after.channel.id][member.id]
-        if move_to_id is not None:
-            await member.move_to(self.bot.get_channel(move_to_id), reason=Reason.TEAM_VC)
-
-    def _get_or_create(self, listen_id: int) -> dict:
-        if self.__data.get(listen_id) is None:
-            self.__data[listen_id] = {}
-        return self.__data[listen_id]
-
-    async def listen_vc(self, payload: VCPayload) -> None:
-        # Ensure payload is for adding a listener
-        assert payload.stop is False
-
-        data = self._get_or_create(payload.vc_listen_id)
-        for _id in payload.player_ids:
-            data[_id] = payload.vc_dest_id
-
-    async def unlisten_vc(self, payload: VCPayload) -> None:
-        # Ensure payload is for removing a listener
-        assert payload.stop is True
-
-        data = self._get_or_create(payload.vc_listen_id)
-        for _id in payload.player_ids:
-            if data.get(_id) is not None:
-                del data[_id]
-
-        # Delete the listen ID entry if nobody is in there
-        if not data:
-            del self.__data[payload.vc_listen_id]
+    async def _delete_dms(self, guild_id: int, players: List[int]) -> None:
+        for player in players:
+            try:
+                message_id = await self.bot.dm_manager.delete(
+                    guild_id, player)
+                dm_channel = await self.bot.get_user(player).create_dm()
+                await dm_channel.get_partial_message(message_id).delete()
+                self.bot.logger.info(
+                    f"Deleted message ID {message_id} for user {player}")
+            except KeyError:
+                self.bot.logger.info(
+                    f"Message does not exist for guild_id {guild_id} user_id {player}")
+            except discord.NotFound:
+                self.bot.logger.info(
+                    f"Message ID {message_id} for user {player} was already deleted")
+            except discord.HTTPException as e:
+                self.bot.logger.error(
+                    f"HTTPException when trying to delete message ID {message_id} for user {player}: {e}")
+            except Exception as e:
+                self.bot.logger.error(
+                    "An exception occurred when trying to delete " +
+                    f"message ID {message_id} for user {player}: {e}"
+                )
+                traceback.print_exception(type(e), e, e.__traceback__)
 
     async def reset_button_vc_move(self, payload: VCResetPayload) -> None:
         for team in payload.teams:
             try:
-                await self._util_move_back_to_lobby(
+                await self._move_team_to_lobby_vc(
                     payload.guild_id,
                     payload.lobby_vc_id,
                     team,
@@ -93,7 +78,7 @@ class MonitoringCog(commands.Cog):
     async def delete_vcs(self, payload: MatchFinalisedPayload) -> None:
         for team in payload.teams:
             try:
-                await self._util_move_back_to_lobby(
+                await self._move_team_to_lobby_vc(
                     payload.guild_id,
                     payload.lobby_vc_id,
                     team,
@@ -115,6 +100,13 @@ class MonitoringCog(commands.Cog):
             payload.guild_id,
             payload.name,
         )
+
+    async def delete_dms(self, payload: MatchFinalisedPayload) -> None:
+        for team in payload.teams:
+            await self._delete_dms(payload.guild_id, team.players)
+
+    async def explicit_delete_dms(self, payload: DMDeletePayload) -> None:
+        await self._delete_dms(payload.guild_id, payload.players)
 
 
 async def setup(bot):

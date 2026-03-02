@@ -9,16 +9,13 @@ __all__ = (
 class Event(StrEnum):
     # Dispatched after a queue is filled to maximum occupancy
     QUEUE_FILLED = "queue_filled"
-    
+
     # Dispatched after queue owner submits prematch modal successfully
     PREMATCH_MODAL_DONE = "prematch_modal_done"
 
-    # Dispatched after player drafts are completed by team captains
-    VC_LISTENER_ADD = "vc_listener_add"
+    # Dispatched after cancel button was pressed to delete prematch DM message
+    PREMATCH_DM_DELETE = "prematch_dm_delete"
 
-    # Dispatched after report results button is pressed by queue owner
-    VC_LISTENER_REMOVE = "vc_listener_remove"
-    
     # Dispatched after the reset button was pressed
     RESET_BUTTON_PRESSED = "reset_button_pressed"
 

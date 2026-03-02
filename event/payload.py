@@ -1,4 +1,4 @@
-from typing import List, Tuple, Union
+from typing import List, Tuple
 
 from base import WrapperBase
 from matchmanager import MatchEntry, MatchTeam
@@ -8,8 +8,8 @@ __all__ = (
     "QueueFilledPayload",
 
     "PrematchPayload",
+    "DMDeletePayload",
 
-    "VCPayload",
     "VCResetPayload",
 
     "MatchFinalisedPayload",
@@ -102,60 +102,35 @@ class PrematchPayload(WrapperBase):
         }
 
 
-class VCPayload(WrapperBase):
+class DMDeletePayload(WrapperBase):
     __slots__ = (
-        "__vc_listen_id",
-        "__vc_dest_id",
-        "__player_ids",
-        "__stop",
+        "__guild_id",
+        "__players",
     )
 
     def __init__(self, data: dict):
-        self.__vc_listen_id: int = data["vc_listen_id"]
-        self.__vc_dest_id: Union[int, None] = data["vc_dest_id"]
-        self.__player_ids: List[int] = data["player_ids"]
-        self.__stop: bool = data["stop"]
+        self.__guild_id: int = data["guild_id"]
+        self.__players: List[int] = data["players"]
 
     @property
-    def vc_listen_id(self) -> int:
-        return self.__vc_listen_id
+    def guild_id(self) -> int:
+        return self.__guild_id
 
     @property
-    def vc_dest_id(self) -> int:
-        return self.__vc_dest_id
-
-    @property
-    def player_ids(self) -> List[int]:
-        return self.__player_ids
-
-    @property
-    def stop(self) -> bool:
-        return self.__stop
+    def players(self) -> List[int]:
+        return self.__players
 
     def serialise(self) -> dict:
         return {
-            "vc_listen_id": self.__vc_listen_id,
-            "vc_dest_id": self.__vc_dest_id,
-            "player_ids": self.__player_ids,
-            "stop": self.__stop,
+            "guild_id": self.__guild_id,
+            "players": self.__players,
         }
 
     @classmethod
-    def create_add(cls, listen_id: int, dest_id: int, player_ids: List[int]) -> "VCPayload":
-        return cls.parse({
-            "vc_listen_id": listen_id,
-            "vc_dest_id": dest_id,
-            "player_ids": player_ids,
-            "stop": False,
-        })
-
-    @classmethod
-    def create_remove(cls, listen_id: int, player_ids: List[int]) -> "VCPayload":
-        return cls.parse({
-            "vc_listen_id": listen_id,
-            "vc_dest_id": None,
-            "player_ids": player_ids,
-            "stop": True,
+    def create(cls, *, guild_id: int, players: List[int]) -> "DMDeletePayload":
+        return cls({
+            "guild_id": guild_id,
+            "players": players,
         })
 
 
