@@ -55,7 +55,11 @@ class FeedbackModal(discord.ui.Modal):
 
         # Send to all owners as a silent message
         for owner_id in self.bot.config.owner_ids:
-            await self.bot.get_user(owner_id).send(view=feedback_view, silent=True)
+            await self.bot.get_user(owner_id).send(
+                view=feedback_view,
+                silent=True,
+                allowed_mentions=discord.AllowedMentions.none(),
+            )
 
         await interaction.response.send_message(
             "Thank you. Your feedback has been sent to the developers.",
