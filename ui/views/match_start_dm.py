@@ -3,7 +3,7 @@ from typing import List
 import discord
 
 from event import PrematchDMPayload
-from ui import R6URL
+from ..urls import R6URL
 
 
 class MatchStartDMView(discord.ui.LayoutView):
