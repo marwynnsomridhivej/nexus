@@ -20,7 +20,7 @@ class StatsCog(commands.Cog):
         for coro, event in _handlers.items():
             self.bot.add_listener(coro, f"on_{event}")
 
-        print("[StatsCog] Successfully loaded")
+        self.bot.logger.info("[StatsCog] Successfully loaded")
 
     async def calc_stats(self, payload: MatchFinalisedPayload):
         for team in [payload.winning_team, payload.losing_team]:

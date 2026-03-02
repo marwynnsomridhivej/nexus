@@ -23,7 +23,7 @@ class QueueCog(commands.GroupCog, name="queue"):
         for coro, event in _handlers.items():
             self.bot.add_listener(coro, f"on_{event}")
 
-        print("[QueueCog] Successfully loaded")
+        self.bot.logger.info("[QueueCog] Successfully loaded")
 
     async def _notify_queue_owner_full(self, payload: QueueFilledPayload) -> None:
         content = "\n".join([
@@ -253,6 +253,7 @@ class QueueCog(commands.GroupCog, name="queue"):
             msg = "Could not find any queues matching specified criteria"
         except Exception as e:
             msg = f"An error has occurred: {e}"
+            self.bot.logger.error(f"An exception occurred when trying to list queue: {e}")
             traceback.print_exception(type(e), e, e.__traceback__)
             ephemeral = False
         finally:

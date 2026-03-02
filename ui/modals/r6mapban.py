@@ -77,5 +77,8 @@ class R6MapBanModal(discord.ui.Modal):
 
     async def on_error(self, interaction: discord.Interaction, error: Exception):
         msg = "An error has occurred. Unable to ban map."
+        self._r6view._bot.logger.error(
+            f"An exception occurred when trying to ban map: {error}"
+        )
         traceback.print_exception(type(error), error, error.__traceback__)
         await interaction.response.send_message(msg)

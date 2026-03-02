@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 from abc import ABC, abstractmethod
 
@@ -15,6 +16,7 @@ class ManagerBase(ABC):
     def __init__(self, _dir: str, name: str):
         self.__dir = _dir
         self.file_path = f"{self.__dir}/{name}.json"
+        self._logger = logging.getLogger()
 
     @abstractmethod
     async def load(self, *, name: str):
@@ -27,7 +29,7 @@ class ManagerBase(ABC):
             os.mkdir(self.__dir)
 
         await self._get_or_create_wrapper()
-        print(f"[{name}] Successfully loaded")
+        self._logger.info(f"[{name}] Successfully loaded")
 
     async def __get_wrapper_data(self) -> dict:
         """Get wrapper data from disk

@@ -121,6 +121,9 @@ class PreMatchModal(discord.ui.Modal):
             msg = "An invalid amount of captains were manually selected."
         else:
             msg = "An error has occurred. Unable to start match."
+            self.__bot.logger.error(
+                f"An exception occurred when trying to start match: {error}"
+            )
             traceback.print_exception(type(error), error, error.__traceback__)
 
         await interaction.response.send_message(msg, ephemeral=True)
