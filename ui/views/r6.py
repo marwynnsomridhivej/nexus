@@ -30,7 +30,6 @@ INIT_DISABLED = [
     "Side Select",
     "Designate MVP",
     "Report Results",
-    "Reset",
 ]
 
 
@@ -82,7 +81,7 @@ class R6ViewButtons(discord.ui.ActionRow):
     async def reset_to_default(self, interaction: discord.Interaction) -> None:
         await self._r6view._bot.match_manager.reset_draft(interaction.guild_id, self._r6view._payload.match_name)
         await self._r6view._update_match()
-        await interaction.response.send_message(
+        await interaction.channel.send(
             content="Player draft, map bans, and starting side selection have been reset",
             delete_after=10.0
         )
@@ -225,12 +224,16 @@ class R6ViewButtons(discord.ui.ActionRow):
         if self._r6view._match.mvps_set:
             await self._set_disabled(interaction, label="Designate MVP", disabled=True)
 
+        # Update the text on the R6View
+        await self._r6view._update_txt_content(interaction)
+
         # If this action finalises the match results (win + mvp set for both teams), disable view
         if self._r6view._check_finalised():
             await self._r6view._disable_reset_button(interaction)
 
-            # Update the text on the R6View
-        await self._r6view._update_txt_content(interaction)
+            # Dispatch thread cleanup to close and lock threads
+            self._r6view._bot.dispatch(
+                Event.THREAD_CLEANUP, self._r6view._payload)
 
     @discord.ui.button(label="Report Results", style=discord.ButtonStyle.grey)
     async def _report_results_button(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -245,12 +248,16 @@ class R6ViewButtons(discord.ui.ActionRow):
             # Similar to Designate MVP, disable this button once winner/loser is set
             await self._set_disabled(interaction, label="Report Results", disabled=True)
 
+        # Update the text on the R6View
+        await self._r6view._update_txt_content(interaction)
+
         # If this action finalises the match results (win + mvp set for both teams), disable view
         if self._r6view._check_finalised():
             await self._r6view._disable_reset_button(interaction)
 
-            # Update the text on the R6View
-        await self._r6view._update_txt_content(interaction)
+            # Dispatch thread cleanup to close and lock threads
+            self._r6view._bot.dispatch(
+                Event.THREAD_CLEANUP, self._r6view._payload)
 
 
 class R6ViewOwnerButtons(discord.ui.ActionRow):
@@ -265,6 +272,14 @@ class R6ViewOwnerButtons(discord.ui.ActionRow):
         if not self._other_row._is_queue_owner(interaction):
             return await interaction.response.send_message(CANNED["owner"], ephemeral=True)
 
+        confirm_modal = R6ConfirmationModal(operation="reset")
+        await interaction.response.send_modal(confirm_modal)
+        await confirm_modal.wait()
+
+        # Do not proceed unless user confirms
+        if not confirm_modal.proceed:
+            return
+
         if self._other_row._r6view._match.finalised:
             button.disabled = True
             await interaction.message.edit(view=self._other_row._r6view)
@@ -278,13 +293,18 @@ class R6ViewOwnerButtons(discord.ui.ActionRow):
         if not self._other_row._is_queue_owner(interaction):
             return await interaction.response.send_message(CANNED["owner"], ephemeral=True)
 
+        confirm_modal = R6ConfirmationModal(operation="cancel")
+        await interaction.response.send_modal(confirm_modal)
+        await confirm_modal.wait()
+
+        # Do not proceed unless user confirms
+        if not confirm_modal.proceed:
+            return
+
         if self._other_row._r6view._match.finalised:
             button.disabled = True
             await interaction.message.edit(view=self._other_row._r6view)
             return await interaction.response.send_message(CANNED["finalised"], ephemeral=True)
-
-        await self._other_row.cancel(interaction)
-        await self._r6view._update_txt_content(interaction)
 
         # Disable all buttons in R6ViewButtons
         for label in ["Draft Player", "Ban Map", "Side Select", "Designate MVP", "Report Results"]:
@@ -295,14 +315,20 @@ class R6ViewOwnerButtons(discord.ui.ActionRow):
             if type(item) == discord.ui.Button:
                 item.disabled = True
 
-        # Update message content to display cancel text
+        # Perform cancel
+        await self._other_row.cancel(interaction)
+
+        # Update message with canceled text and buttons
         await self._r6view._update_txt_content(interaction)
 
         # Send additional message with no pings
-        await interaction.response.send_message(
+        await interaction.followup.send(
             f"This match `{self._r6view._payload.match_name}` has been canceled. " +
             "The queue has not been deleted and can be started again."
         )
+
+        # Dispatch THREAD_CLEANUP event
+        self._r6view._bot.dispatch(Event.THREAD_CLEANUP, self._r6view._payload)
 
 
 class R6View(discord.ui.LayoutView):
