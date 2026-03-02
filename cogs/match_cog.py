@@ -24,25 +24,16 @@ class MatchCog(commands.GroupCog, name="match"):
         for coro, event in _handlers.items():
             self.bot.add_listener(coro, f"on_{event}")
 
-        print("[MatchCog] Successfully loaded")
+        self.bot.logger.info("[MatchCog] Successfully loaded")
 
     async def _prematch_dm(self, payload: PrematchPayload) -> None:
-        msg = f"""A match you are queued for is starting: **{payload.match_name} - [{payload.entry.type}]**
-
-The following will happen BEFORE you get into the custom:
-1. Join the voice channel <#{payload.voice_channel_id}>
-2. Team captains have been assigned: {" ".join([f"<@{user_id}>" for user_id in payload.captains])}
-3. Players are drafted by team captains
-    - *The lowest rated captain will get first pick, and picks alternate until no players remain*
-4. Teams will be automatically split into isolated voice channels based on draft
-5. Maps are banned until one is left
-    - *The highest rated captain will get first ban, and bans alternate until one map remains*
-6. Players join the lobby ingame and the game starts
-    - *Lobby will be set up by any player in accordance to draft and map bans*
-"""
         # TODO: Craft a message to be sent to captains once post-match flow is established
         for user_id in payload.entry.players:
-            await self.bot.get_user(user_id).send(msg, delete_after=60)
+            message = await self.bot.get_user(user_id).send(view=MatchStartDMView(
+                guild=self.bot.get_guild(payload.guild_id),
+                payload=payload,
+            ))
+            await self.bot.dm_manager.create(payload.guild_id, user_id, message.id)
 
     async def _init_match_data(self, payload: PrematchPayload) -> None:
         await self.bot.match_manager.create_match(payload=payload)
