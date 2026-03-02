@@ -40,8 +40,8 @@ class PreMatchModal(discord.ui.Modal):
             ),
         )
         self.tc = discord.ui.Label(
-            text="Text Channel",
-            description="Where should the bot send messages pertaining to this match?",
+            text="Text/Thread Channel",
+            description="Which text channel should a thread be created in to house all messages related to this match?",
             component=discord.ui.ChannelSelect(
                 channel_types=[discord.ChannelType.text],
                 required=True,
