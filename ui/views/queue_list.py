@@ -62,6 +62,9 @@ class QueueListView(Paginator):
             discord.ui.TextDisplay(
                 content=f"-# Matched criteria:  {"All Open Queues" if not self.criteria else " | ".join(self.criteria)}"
             ),
+
+            # Accent color
+            accent_color=discord.Color.blurple(),
         )
 
         # Don't add navigation buttons unless they are needed

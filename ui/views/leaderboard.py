@@ -77,6 +77,9 @@ class LeaderboardView(Paginator):
             discord.ui.TextDisplay(
                 content=f"-# Statistics tabulated as of {self.created_time}"
             ),
+
+            # Accent color
+            accent_color=discord.Color.blurple(),
         )
 
         # Don't add navigation buttons unless they are needed
