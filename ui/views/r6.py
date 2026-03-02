@@ -87,13 +87,41 @@ class R6ViewButtons(discord.ui.ActionRow):
             delete_after=10.0
         )
 
-        # Dispatch unlisten events and then move everyone back
-        self._r6view._dispatch_stop_team_vc_move()
+        # Dispatch reset button pressed event and then move everyone back
         self._r6view._dispatch_reset_button_pressed()
 
         # Set view buttons to default state
         self._set_button_default_state()
         await interaction.message.edit(view=self._r6view)
+
+    async def cancel(self, interaction: discord.Interaction) -> None:
+        # Delete match entry
+        await self._r6view._bot.match_manager.delete_match(interaction.guild_id, self._r6view._payload.match_name)
+
+        # Set in_progress to False
+        await self._r6view._bot.queue_manager.set_progress_state(
+            interaction.guild_id,
+            self._r6view._payload.match_name,
+            False,
+        )
+
+        # Unlock queue
+        await self._r6view._bot.queue_manager.set_queue_lock_state(
+            interaction.guild_id,
+            interaction.user.id,
+            self._r6view._payload.match_name,
+            False,
+        )
+
+        # Mark canceled and stop listening to events
+        self._r6view.match_canceled = True
+        self._r6view.stop()
+
+        # Dispatch DM_DELETE event
+        self._r6view._bot.dispatch(Event.PREMATCH_DM_DELETE, DMDeletePayload.create(
+            guild_id=interaction.guild_id,
+            players=self._r6view._payload.entry.players,
+        ))
 
     @discord.ui.button(label="Draft Player", style=discord.ButtonStyle.green)
     async def _draft_button(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -118,7 +146,7 @@ class R6ViewButtons(discord.ui.ActionRow):
         if self._r6view.finished_draft:
             button.disabled = True
             await self._r6view._create_team_vcs()
-            await self._r6view._dispatch_team_vc_move()
+            await self._r6view._move_to_team_vcs()
             await self._set_disabled(interaction, label="Ban Map", disabled=False)
 
         # Update the text on the R6View
@@ -225,7 +253,7 @@ class R6ViewButtons(discord.ui.ActionRow):
         await self._r6view._update_txt_content(interaction)
 
 
-class R6ViewResetButton(discord.ui.ActionRow):
+class R6ViewOwnerButtons(discord.ui.ActionRow):
     def __init__(self, *, view, other_row: "R6ViewButtons"):
         super().__init__()
 
@@ -245,6 +273,37 @@ class R6ViewResetButton(discord.ui.ActionRow):
         await self._other_row.reset_to_default(interaction)
         await self._r6view._update_txt_content(interaction)
 
+    @discord.ui.button(label="Cancel", style=discord.ButtonStyle.danger)
+    async def _cancel_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if not self._other_row._is_queue_owner(interaction):
+            return await interaction.response.send_message(CANNED["owner"], ephemeral=True)
+
+        if self._other_row._r6view._match.finalised:
+            button.disabled = True
+            await interaction.message.edit(view=self._other_row._r6view)
+            return await interaction.response.send_message(CANNED["finalised"], ephemeral=True)
+
+        await self._other_row.cancel(interaction)
+        await self._r6view._update_txt_content(interaction)
+
+        # Disable all buttons in R6ViewButtons
+        for label in ["Draft Player", "Ban Map", "Side Select", "Designate MVP", "Report Results"]:
+            await self._other_row._set_disabled(interaction, label=label, disabled=True)
+
+        # Disable all buttons in R6ViewOwnerButtons
+        for item in self.children:
+            if type(item) == discord.ui.Button:
+                item.disabled = True
+
+        # Update message content to display cancel text
+        await self._r6view._update_txt_content(interaction)
+
+        # Send additional message with no pings
+        await interaction.response.send_message(
+            f"This match `{self._r6view._payload.match_name}` has been canceled. " +
+            "The queue has not been deleted and can be started again."
+        )
+
 
 class R6View(discord.ui.LayoutView):
     def __init__(self, *, payload: PrematchPayload, match: MatchEntry, bot):
@@ -255,6 +314,8 @@ class R6View(discord.ui.LayoutView):
         from bot import Bot
         self._bot: Bot = bot
 
+        self.match_canceled = False
+
     def init_components(self) -> None:
         self.map_pool = sorted(random.sample(R6_RANKED, k=7))
 
@@ -264,7 +325,7 @@ class R6View(discord.ui.LayoutView):
             self.about_text, accessory=self.thumbnail)
 
         self.view_buttons = R6ViewButtons(view=self)
-        self.r6_view_reset_button = R6ViewResetButton(
+        self.r6_view_reset_button = R6ViewOwnerButtons(
             view=self,
             other_row=self.view_buttons)
         container = discord.ui.Container(
@@ -298,12 +359,6 @@ class R6View(discord.ui.LayoutView):
             self._draft_order[1], self._draft_order[0]
         ] if self.playercount % 2 == 0 else self._draft_order
 
-        # TODO: Delete on live
-        if self.playercount % 2:
-            # For my sanity, ensure _draft_order and _op_draft_order are identical by index
-            assert self._draft_order[0] == self._op_draft_order[0]
-            assert self._draft_order[1] == self._op_draft_order[1]
-
     def _get_team_players_txt(self, team: MatchTeam) -> List[int]:
         txt = f"### Team {team.name}"
         txt += " (Win)" if team.win is True else " (Lose)" if team.win is False else ""
@@ -320,15 +375,26 @@ class R6View(discord.ui.LayoutView):
         title = f"## {self._payload.match_name.upper()} [{self._match.type.upper()}]"
         items.append(title)
 
-        # Always put team roster
+        # If canceled, show cancelation message
+        if self.match_canceled:
+            items.append(
+                "This match has been canceled by the queue owner. Your rankings remain unchanged.")
+            return "\n".join(items)
+
+        # Put team roster
         team_draft = "\n".join([
             self._get_team_players_txt(self._match.team_a),
             self._get_team_players_txt(self._match.team_b),
         ])
         items.append(team_draft)
 
-        # Show draft order if not done
+        # Show draft pool and pick order if not done
         if not self.finished_draft:
+            draft_pool = "### Player Draft Pool\n" + "\n".join([
+                f"- <@{player_id}>" for (_, player_id) in self.draftable_players
+            ])
+            items.append(draft_pool)
+
             draft_order = "\n".join([
                 "### Player Draft Order",
                 f"1. <@{self._draft_order[0].id}>",
@@ -419,7 +485,7 @@ class R6View(discord.ui.LayoutView):
                 )
                 await self._update_match()
 
-    async def _dispatch_team_vc_move(self) -> None:
+    async def _move_to_team_vcs(self) -> None:
         for team in self.teams:
             # Try to move individual players first
             team_vc = self._bot.get_channel(team.voice_channel_id)
@@ -433,19 +499,6 @@ class R6View(discord.ui.LayoutView):
                     pass
                 except Exception as e:
                     traceback.print_exception(type(e), e, e.__traceback__)
-
-            # Then create listeners to auto route players to their team VC if they are disconnected
-            self._bot.dispatch(Event.VC_LISTENER_ADD, VCPayload.create_add(
-                self._match.voice_channel_id,
-                team.voice_channel_id,
-                team.players,
-            ))
-
-    def _dispatch_stop_team_vc_move(self) -> None:
-        self._bot.dispatch(Event.VC_LISTENER_REMOVE, VCPayload.create_remove(
-            self._match.voice_channel_id,
-            self._match.team_a.players + self._match.team_b.players,
-        ))
 
     def _dispatch_reset_button_pressed(self) -> None:
         self._bot.dispatch(Event.RESET_BUTTON_PRESSED, VCResetPayload.create(
@@ -462,10 +515,7 @@ class R6View(discord.ui.LayoutView):
             # Stop listening to events on this View
             self.stop()
 
-            # Remove all vc redirects
-            self._dispatch_stop_team_vc_move()
-
-            # Dispatch match finalised to teardown vcs
+            # Dispatch match finalised to teardown VCs
             self._bot.dispatch(Event.MATCH_FINALISED, MatchFinalisedPayload.create(
                 guild_id=self._payload.guild_id,
                 name=self._payload.match_name,
