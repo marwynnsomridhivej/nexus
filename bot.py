@@ -17,6 +17,10 @@ class Bot(commands.Bot):
     def __init__(self, config: Config, **kwargs):
         super().__init__(
             command_prefix=commands.when_mentioned_or(config.command_prefix),
+            activity=discord.Activity(
+                name="/help | F2 vertical grip!",
+                type=discord.ActivityType.playing,
+            ),
             **kwargs
         )
 
