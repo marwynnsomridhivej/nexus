@@ -1,3 +1,4 @@
+from datetime import datetime
 from decimal import Decimal
 from typing import Dict, List, Union
 
@@ -7,6 +8,7 @@ from exceptions import *
 __all__ = (
     "StatsWrapper",
     "StatsGuildContainer",
+    "StatsSeason",
     "StatsPlayer",
 )
 
@@ -50,7 +52,7 @@ class StatsWrapper(WrapperBase):
         """
         sgc = self.get(guild_id)
         if sgc is None:
-            sgc = StatsGuildContainer({})
+            sgc = StatsGuildContainer.create_blank()
             self.__data[guild_id] = sgc
         return sgc
 
@@ -69,15 +71,85 @@ class StatsWrapper(WrapperBase):
 
 class StatsGuildContainer(WrapperBase):
     __slots__ = (
-        "__data",
+        "current",
+        "history",
     )
 
     def __init__(self, data: dict):
-        self.__data: Dict[int, StatsPlayer] = {
-            int(user_id): StatsPlayer.parse(entry) for user_id, entry in data.items()
+        self.current: Union[StatsSeason, None] = StatsSeason.parse(
+            data["current"]) if data.get("current") is not None else None
+        self.history: List[StatsSeason] = [
+            StatsSeason.parse(entry) for entry in data["history"]
+        ]
+
+    def has_active_season(self) -> bool:
+        return isinstance(self.current, StatsSeason)
+
+    def set_current_season(self, name: str) -> "StatsSeason":
+        if self.has_active_season():
+            raise ValueError("An active season already exists")
+
+        self.current = StatsSeason.create_blank(name)
+
+    def stop_current_season(self) -> None:
+        if not self.has_active_season():
+            raise ValueError("No active season exists")
+
+        self.current.stop_season()
+        self.history.append(self.current)
+        self.current = None
+
+    def serialise(self) -> dict:
+        """Convert StatsGuildContainer (SGC) instance representation into a dict
+
+        Returns:
+            dict: Dictionary representation of the SGC instance
+        """
+        return {
+            "current": self.current.serialise(),
+            "history": [season.serialise() for season in self.history]
         }
 
-    def get(self, user_id: int, throw: bool = False) -> Union["StatsPlayer", None]:
+    @classmethod
+    def create_blank(cls) -> "StatsGuildContainer":
+        return cls({
+            "current": None,
+            "history": [],
+        })
+
+
+class StatsSeason(WrapperBase):
+    __slots__ = (
+        "name",
+        "start_timestamp",
+        "end_timestamp",
+        "players",
+    )
+
+    def __init__(self, data: dict):
+        self.name: str = data["name"]
+        self.start_timestamp: float = data["start_timestamp"]
+        self.end_timestamp: float = data.get("end_timestamp", None)
+
+        assert isinstance(data["players"], dict)
+        self.players: Dict[int, StatsPlayer] = {
+            int(user_id): StatsPlayer.parse(entry) for user_id, entry in data["players"].items()
+        }
+
+    @property
+    def start_time_str(self) -> str:
+        return datetime.fromtimestamp(self.start_timestamp).strftime(r"%d/%m/%Y")
+
+    @property
+    def end_time_str(self) -> str:
+        if self.end_timestamp is None:
+            return "Ongoing"
+        return datetime.fromtimestamp(self.end_timestamp).strftime(r"%d/%m/%Y")
+
+    def stop_season(self) -> None:
+        self.end_timestamp = datetime.now().timestamp()
+
+    def get_player(self, user_id: int, throw: bool = False) -> Union["StatsPlayer", None]:
         """Get a StatsPlayer with the specified name
 
         Args:
@@ -90,12 +162,12 @@ class StatsGuildContainer(WrapperBase):
         Returns:
             Union[StatsPlayer, None]: The StatsPlayer instance with the specified name
         """
-        data = self.__data.get(user_id)
+        data = self.players.get(user_id)
         if data is None and throw:
             raise PlayerDoesNotExist(user_id)
         return data
 
-    def create(self, user_id: int) -> "StatsPlayer":
+    def create_player(self, user_id: int) -> "StatsPlayer":
         """Create a StatsPlayer with specified user_id
 
         Args:
@@ -107,12 +179,12 @@ class StatsGuildContainer(WrapperBase):
         Returns:
             StatsPlayer: The newly created StatsPlayer instance for the specified user
         """
-        if self.__data.get(user_id) is not None:
+        if self.players.get(user_id) is not None:
             raise PlayerAlreadyExists(user_id)
-        self.__data[user_id] = StatsPlayer.create_zeroed(user_id)
-        return self.__data[user_id]
+        self.players[user_id] = StatsPlayer.create_zeroed(user_id)
+        return self.players[user_id]
 
-    def delete(self, user_id: int) -> None:
+    def delete_player(self, user_id: int) -> None:
         """Deletes a player's stats entry entirely (NOT RESET)
 
         Args:
@@ -121,11 +193,11 @@ class StatsGuildContainer(WrapperBase):
         Raises:
             PlayerDoesNotExist: No StatsPlayer exists for the specified user
         """
-        if self.__data.get(user_id) is None:
+        if self.players.get(user_id) is None:
             raise PlayerDoesNotExist(user_id)
-        del self.__data[user_id]
+        del self.players[user_id]
 
-    def award(self, user_id: int, mvp_id: int, win: bool) -> None:
+    def award_player(self, user_id: int, mvp_id: int, win: bool) -> None:
         """Awards the specified player points for winning or losing a match
 
         Args:
@@ -134,28 +206,36 @@ class StatsGuildContainer(WrapperBase):
             win (bool): Whether or not the player was on the winning team
         """
         try:
-            player = self.get(user_id, throw=True)
+            player = self.get_player(user_id, throw=True)
         except PlayerDoesNotExist:
-            player = self.create(user_id)
+            player = self.create_player(user_id)
 
         func = player.win if win else player.lose
         func(user_id == mvp_id)
 
-    @property
-    def players(self) -> List["StatsPlayer"]:
-        return [player for player in self.__data.values()]
-
-    @property
-    def data(self) -> Dict[int, "StatsPlayer"]:
-        return self.__data
-
     def serialise(self) -> dict:
-        """Convert StatsGuildContainer (SGC) instance representation into a dict
+        """Convert StatsSeason instance representation into a dict
 
         Returns:
-            dict: Dictionary representation of the SGC instance
+            dict: Dictionary representation of the StatsSeason instance
         """
-        return {user_id: entry.serialise() for user_id, entry in self.__data.items()}
+        return {
+            "name": self.name,
+            "start_timestamp": self.start_timestamp,
+            "end_timestamp": self.end_timestamp,
+            "players": {
+                user_id: player.serialise() for user_id, player in self.players.items()
+            }
+        }
+
+    @classmethod
+    def create_blank(cls, name: str) -> "StatsSeason":
+        return cls({
+            "name": name,
+            "start_timestamp": datetime.now().timestamp(),
+            "end_timestamp": None,
+            "players": {}
+        })
 
 
 class StatsPlayer(WrapperBase):

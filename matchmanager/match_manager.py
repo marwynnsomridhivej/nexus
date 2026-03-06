@@ -65,6 +65,10 @@ class MatchManager(ManagerBase):
         wrapper = await self._get_or_create_wrapper()
         return wrapper.get(guild_id, throw=True).get(name, throw=True)
 
+    async def has_running_match(self, guild_id: int) -> bool:
+        wrapper = await self._get_or_create_wrapper()
+        return bool(wrapper.get(guild_id, throw=True).data)
+
     async def draft_player(self, guild_id: int, name: str, captain_id: int, player_id: int) -> None:
         wrapper = await self._get_or_create_wrapper()
         wrapper.get(guild_id, throw=True)\
