@@ -3,6 +3,7 @@ from typing import List
 
 import discord
 
+from canned import Canned
 from matchmanager import MatchTeam
 
 
@@ -10,7 +11,7 @@ class R6ResultModal(discord.ui.Modal):
     def __init__(self, *, view):
         super().__init__(title="Report Results")
 
-        from ..views import R6View
+        from ...views import R6View
         self._r6view: R6View = view
 
         for item in self._init_components():
@@ -51,12 +52,11 @@ class R6ResultModal(discord.ui.Modal):
         await self._r6view._update_match()
 
         winners = f"The winner of **{self._r6view._payload.match_name}** is Team {self._r6view._match.winning_team.name}"
-        await interaction.response.send_message(content=winners)
+        await interaction.response.send_message(winners)
 
     async def on_error(self, interaction: discord.Interaction, error: Exception):
-        msg = "An error has occurred. Unable to report match results."
         self._r6view._bot.logger.error(
             f"An exception occurred when trying to report match results: {error}"
         )
         traceback.print_exception(type(error), error, error.__traceback__)
-        await interaction.response.send_message(msg)
+        await interaction.response.send_message(Canned.ERR_R6DRAFT_GEN_RES)

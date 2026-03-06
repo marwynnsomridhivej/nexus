@@ -3,6 +3,7 @@ from typing import List
 
 import discord
 
+from canned import Canned
 from matchmanager import R6Side
 
 
@@ -10,7 +11,7 @@ class R6SideModal(discord.ui.Modal):
     def __init__(self, *, view):
         super().__init__(title="Starting Side Selection")
 
-        from ..views import R6View
+        from ...views import R6View
         self._r6view: R6View = view
 
         for item in self._init_components():
@@ -49,15 +50,11 @@ class R6SideModal(discord.ui.Modal):
         # Update local MatchEntry instance attached to R6View
         await self._r6view._update_match()
 
-        await interaction.response.send_message(
-            content=f"Captain <@{captain_id}>'s team will start as **{choice.lower()}s**.",
-            delete_after=10.0
-        )
+        await interaction.response.send_message(f"Captain <@{captain_id}>'s team will start as **{choice.lower()}s**.", delete_after=10.0)
 
     async def on_error(self, interaction: discord.Interaction, error: Exception):
-        msg = "An error has occurred. Unable to select starting side."
         self._r6view._bot.logger.error(
             f"An exception occurred when trying to select starting side: {error}"
         )
         traceback.print_exception(type(error), error, error.__traceback__)
-        await interaction.response.send_message(msg)
+        await interaction.response.send_message(Canned.ERR_R6DRAFT_GEN_SIDE)

@@ -3,12 +3,14 @@ from typing import List
 
 import discord
 
+from canned import Canned
+
 
 class R6DraftModal(discord.ui.Modal):
     def __init__(self, *, view):
         super().__init__(title="Draft Player")
 
-        from ..views import R6View
+        from ...views import R6View
         self._r6view: R6View = view
 
         for item in self._init_components():
@@ -48,10 +50,7 @@ class R6DraftModal(discord.ui.Modal):
         await self._r6view._update_match()
 
         # Notify
-        await interaction.response.send_message(
-            content=f"Captain <@{captain_id}> has drafted <@{drafted_id}>",
-            delete_after=10.0
-        )
+        await interaction.response.send_message(f"Captain <@{captain_id}> has drafted <@{drafted_id}>", delete_after=10.0)
 
         # Check if there is one player left. If so, do the following actions:
         # If playercount is:
@@ -60,10 +59,7 @@ class R6DraftModal(discord.ui.Modal):
         #
         # If there is more than one player left, notify the other captain they can draft.
         if len(self._r6view.draftable_players) > 1:
-            await interaction.channel.send(
-                content=f"*It is now <@{self._r6view.other_captain_id(captain_id)}>'s turn to draft*",
-                delete_after=10.0
-            )
+            await interaction.channel.send(f"*It is now <@{self._r6view.other_captain_id(captain_id)}>'s turn to draft*", delete_after=10.0)
             return
 
         # Last player to draft in draftable [name, id (in string form)]
@@ -86,15 +82,11 @@ class R6DraftModal(discord.ui.Modal):
         await self._r6view._update_match()
 
         # Notify
-        await interaction.channel.send(
-            content=f"Captain <@{captain_id}> has drafted <@{drafted_id}>",
-            delete_after=10.0
-        )
+        await interaction.channel.send(f"Captain <@{captain_id}> has drafted <@{drafted_id}>", delete_after=10.0)
 
     async def on_error(self, interaction: discord.Interaction, error: Exception):
-        msg = "An error has occurred. Unable to draft player."
         self._r6view._bot.logger.error(
             f"An exception occurred when trying to draft player: {error}"
         )
         traceback.print_exception(type(error), error, error.__traceback__)
-        await interaction.response.send_message(msg)
+        await interaction.response.send_message(Canned.ERR_R6DRAFT_GEN_DRAFT)

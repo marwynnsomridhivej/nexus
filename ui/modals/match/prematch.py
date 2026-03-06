@@ -3,6 +3,7 @@ from typing import Dict, List
 
 import discord
 
+from canned import Canned
 from exceptions import *
 from queuemanager import *
 
@@ -114,13 +115,13 @@ class PreMatchModal(discord.ui.Modal):
 
     async def on_error(self, interaction: discord.Interaction, error: Exception):
         if isinstance(error, UserIsBot):
-            msg = "Cannot designate a bot user as captain."
+            msg = Canned.ERR_R6PRE_BOT_USER
         elif isinstance(error, InvalidUserSelected):
-            msg = "Cannot designate a user as captain if they are not in the player list."
+            msg = Canned.ERR_R6PRE_INVALID_USER
         elif isinstance(error, InvalidCaptainManualSelect):
-            msg = "An invalid amount of captains were manually selected."
+            msg = Canned.ERR_R6PRE_INVALID_MANUAL
         else:
-            msg = "An error has occurred. Unable to start match."
+            msg = Canned.ERR_R6PRE_GEN
             self.__bot.logger.error(
                 f"An exception occurred when trying to start match: {error}"
             )

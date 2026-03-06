@@ -1,16 +1,17 @@
 import traceback
 from typing import List
-from exceptions import *
-
 
 import discord
+
+from canned import Canned
+from exceptions import *
 
 
 class R6MVPModal(discord.ui.Modal):
     def __init__(self, *, view, captain_id: int):
         super().__init__(title="Designate MVP")
 
-        from ..views import R6View
+        from ...views import R6View
         self._r6view: R6View = view
 
         for item in self._init_components(captain_id):
@@ -53,23 +54,16 @@ class R6MVPModal(discord.ui.Modal):
                 mvp_id,
             )
         except MVPAlreadyAssigned:
-            return await interaction.response.send_message(
-                "You have already designated an MVP for your team",
-                ephemeral=True
-            )
+            return await interaction.response.send_message(Canned.ERR_R6DRAFT_MVP_EXISTS, ephemeral=True)
 
         # Update local MatchEntry instance attached to R6View
         await self._r6view._update_match()
 
-        await interaction.response.send_message(
-            content=f"Captain <@{captain_id}> has designated <@{mvp_id}> as the team's MVP",
-            delete_after=10.0
-        )
+        await interaction.response.send_message(f"Captain <@{captain_id}> has designated <@{mvp_id}> as the team's MVP", delete_after=10.0)
 
     async def on_error(self, interaction: discord.Interaction, error: Exception):
-        msg = "An error has occurred. Unable to designate MVP."
         self._r6view._bot.logger.error(
             f"An exception occurred when trying to designate MVP: {error}"
         )
         traceback.print_exception(type(error), error, error.__traceback__)
-        await interaction.response.send_message(msg)
+        await interaction.response.send_message(Canned.ERR_R6DRAFT_GEN_MVP)

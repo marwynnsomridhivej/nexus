@@ -3,24 +3,30 @@ __all__ = (
 
     "PreMatchModal",
 
-    "R6ConfirmationModal",
+    "ConfirmationModal",
     "R6DraftModal",
     "R6MapBanModal",
     "R6MVPModal",
     "R6ResultModal",
     "R6SideModal",
+
+    "SeasonStartModal",
 )
 
 # Feedback
 from .feedback import FeedbackModal
 
 # Before officially starting an R6 Match
-from .prematch import PreMatchModal
+from .match.prematch import PreMatchModal
 
 # Draft and post-game modals for an R6 Match
-from .r6confirmation import R6ConfirmationModal
-from .r6draft import R6DraftModal
-from .r6mapban import R6MapBanModal
-from .r6mvp import R6MVPModal
-from .r6result import R6ResultModal
-from .r6side import R6SideModal
+from .confirmation import ConfirmationModal
+from .match.r6draft import R6DraftModal
+from .match.r6mapban import R6MapBanModal
+from .match.r6mvp import R6MVPModal
+from .match.r6result import R6ResultModal
+from .match.r6side import R6SideModal
+
+
+# Season modals
+from .season.season_start import SeasonStartModal

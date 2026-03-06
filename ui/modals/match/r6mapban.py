@@ -4,6 +4,7 @@ from typing import List
 
 import discord
 
+from canned import Canned
 from matchmanager import R6Map
 
 
@@ -11,7 +12,7 @@ class R6MapBanModal(discord.ui.Modal):
     def __init__(self, *, view):
         super().__init__(title="Ban Map")
 
-        from ..views import R6View
+        from ...views import R6View
         self._r6view: R6View = view
 
         for item in self._init_components():
@@ -64,21 +65,14 @@ class R6MapBanModal(discord.ui.Modal):
             # Need to update local MatchEntry instance again
             await self._r6view._update_match()
 
-        await interaction.response.send_message(
-            content=f"Captain <@{captain_id}> has banned **{map_string}**",
-            delete_after=10.0
-        )
+        await interaction.response.send_message(f"Captain <@{captain_id}> has banned **{map_string}**", delete_after=10.0)
 
         if not self._r6view.finished_map_bans:
-            await interaction.channel.send(
-                content=f"*It is now <@{self._r6view.other_captain_id(captain_id)}>'s turn to select a map to ban*",
-                delete_after=10.0
-            )
+            await interaction.channel.send(f"*It is now <@{self._r6view.other_captain_id(captain_id)}>'s turn to select a map to ban*", delete_after=10.0)
 
     async def on_error(self, interaction: discord.Interaction, error: Exception):
-        msg = "An error has occurred. Unable to ban map."
         self._r6view._bot.logger.error(
             f"An exception occurred when trying to ban map: {error}"
         )
         traceback.print_exception(type(error), error, error.__traceback__)
-        await interaction.response.send_message(msg)
+        await interaction.response.send_message(Canned.ERR_R6DRAFT_GEN_BAN)
