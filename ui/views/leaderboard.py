@@ -67,16 +67,14 @@ class LeaderboardView(Paginator):
         container = discord.ui.Container(
             # Header, name type and page
             discord.ui.TextDisplay(
-                content=f"## Leaderboard [Page {self.current_page + 1}/{self.max_pages}]",
-            ),
+                f"## Leaderboard [Page {self.current_page + 1}/{self.max_pages}]"),
 
             # Actual part that displays leaderboard
             *self.paginate_text_display(),
 
             # Separator is padded at the end in *text_displays
             discord.ui.TextDisplay(
-                content=f"-# Statistics tabulated as of {self.created_time}"
-            ),
+                f"-# Statistics tabulated as of {self.created_time}"),
 
             # Accent color
             accent_color=discord.Color.blurple(),

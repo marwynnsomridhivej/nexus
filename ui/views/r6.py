@@ -4,27 +4,13 @@ from typing import List, Tuple
 
 import discord
 
+from canned import Canned
 from event import *
 from matchmanager import R6_RANKED, MatchEntry, MatchTeam
 
 from ..modals import *
 from ..urls import R6URL
 
-CANNED = {
-    # fmt: off
-    "owner":            "ERROR - Only the queue owner can execute this",
-    "captain":          "ERROR - Only a team captain can execute this",
-
-    "no_draftable":     "ERROR - There are no players available to draft",
-    "draft_not_turn":   "ERROR - It is not your turn to draft players",
-
-    "ban_not_turn":     "ERROR - It is not your turn to ban maps",
-
-    "side":             "ERROR - Your team cannot select which side to start on",
-
-    "finalised":        "ERROR - The match results have been finalised and cannot be modified",
-    # fmt: on
-}
 INIT_DISABLED = [
     "Ban Map",
     "Side Select",
@@ -125,11 +111,11 @@ class R6ViewButtons(discord.ui.ActionRow):
     @discord.ui.button(label="Draft Player", style=discord.ButtonStyle.green)
     async def _draft_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         if not self._is_captain(interaction):
-            return await interaction.response.send_message(CANNED["captain"], ephemeral=True)
+            return await interaction.response.send_message(Canned.ERR_R6DRAFT_CAPTAIN, ephemeral=True)
 
         # Check to ensure the player interacting with this button is the one that should be drafting
         if self._r6view._draft_order[self._index["draft"]].id != interaction.user.id:
-            return await interaction.response.send_message(CANNED["draft_not_turn"], ephemeral=True)
+            return await interaction.response.send_message(Canned.ERR_R6DRAFT_DRAFT_TURN, ephemeral=True)
 
         draft_modal = R6DraftModal(view=self._r6view)
         await interaction.response.send_modal(draft_modal)
@@ -154,11 +140,11 @@ class R6ViewButtons(discord.ui.ActionRow):
     @discord.ui.button(label="Ban Map", style=discord.ButtonStyle.red)
     async def _ban_map_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         if not self._is_captain(interaction):
-            return await interaction.response.send_message(CANNED["captain"], ephemeral=True)
+            return await interaction.response.send_message(Canned.ERR_R6DRAFT_CAPTAIN, ephemeral=True)
 
         # Draft order already initialised, can jump right in
         if self._r6view._op_draft_order[self._index["ban"]].id != interaction.user.id:
-            return await interaction.response.send_message(CANNED["ban_not_turn"], ephemeral=True)
+            return await interaction.response.send_message(Canned.ERR_R6DRAFT_BAN_TURN, ephemeral=True)
 
         map_ban_modal = R6MapBanModal(view=self._r6view)
         await interaction.response.send_modal(map_ban_modal)
@@ -191,10 +177,10 @@ class R6ViewButtons(discord.ui.ActionRow):
     @discord.ui.button(label="Side Select", style=discord.ButtonStyle.blurple)
     async def _side_select_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         if not self._is_captain(interaction):
-            return await interaction.response.send_message(CANNED["captain"], ephemeral=True)
+            return await interaction.response.send_message(Canned.ERR_R6DRAFT_CAPTAIN, ephemeral=True)
 
         if self._r6view._op_draft_order[self._index["ban"]].id != interaction.user.id:
-            return await interaction.response.send_message(CANNED["side"], ephemeral=True)
+            return await interaction.response.send_message(Canned.ERR_R6DRAFT_SIDE, ephemeral=True)
 
         side_modal = R6SideModal(view=self._r6view)
         await interaction.response.send_modal(side_modal)
@@ -211,7 +197,7 @@ class R6ViewButtons(discord.ui.ActionRow):
     @discord.ui.button(label="Designate MVP", style=discord.ButtonStyle.blurple)
     async def _designate_mvp_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         if not self._is_captain(interaction):
-            return await interaction.response.send_message(CANNED["captain"], ephemeral=True)
+            return await interaction.response.send_message(Canned.ERR_R6DRAFT_CAPTAIN, ephemeral=True)
 
         mvp_modal = R6MVPModal(
             view=self._r6view,
@@ -238,7 +224,7 @@ class R6ViewButtons(discord.ui.ActionRow):
     @discord.ui.button(label="Report Results", style=discord.ButtonStyle.grey)
     async def _report_results_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         if not self._is_queue_owner(interaction):
-            return await interaction.response.send_message(CANNED["owner"], ephemeral=True)
+            return await interaction.response.send_message(Canned.ERR_R6DRAFT_OWNER, ephemeral=True)
 
         result_modal = R6ResultModal(view=self._r6view)
         await interaction.response.send_modal(result_modal)
@@ -270,9 +256,9 @@ class R6ViewOwnerButtons(discord.ui.ActionRow):
     @discord.ui.button(label="Reset", style=discord.ButtonStyle.grey)
     async def _reset_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         if not self._other_row._is_queue_owner(interaction):
-            return await interaction.response.send_message(CANNED["owner"], ephemeral=True)
+            return await interaction.response.send_message(Canned.ERR_R6DRAFT_OWNER, ephemeral=True)
 
-        confirm_modal = R6ConfirmationModal(operation="reset")
+        confirm_modal = ConfirmationModal(operation="reset")
         await interaction.response.send_modal(confirm_modal)
         await confirm_modal.wait()
 
@@ -283,7 +269,7 @@ class R6ViewOwnerButtons(discord.ui.ActionRow):
         if self._other_row._r6view._match.finalised:
             button.disabled = True
             await interaction.message.edit(view=self._other_row._r6view)
-            return await interaction.response.send_message(CANNED["finalised"], ephemeral=True)
+            return await interaction.response.send_message(Canned.ERR_R6DRAFT_FINAL, ephemeral=True)
 
         await self._other_row.reset_to_default(interaction)
         await self._r6view._update_txt_content(interaction)
@@ -291,9 +277,9 @@ class R6ViewOwnerButtons(discord.ui.ActionRow):
     @discord.ui.button(label="Cancel", style=discord.ButtonStyle.danger)
     async def _cancel_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         if not self._other_row._is_queue_owner(interaction):
-            return await interaction.response.send_message(CANNED["owner"], ephemeral=True)
+            return await interaction.response.send_message(Canned.ERR_R6DRAFT_OWNER, ephemeral=True)
 
-        confirm_modal = R6ConfirmationModal(operation="cancel")
+        confirm_modal = ConfirmationModal(operation="cancel")
         await interaction.response.send_modal(confirm_modal)
         await confirm_modal.wait()
 
@@ -304,7 +290,7 @@ class R6ViewOwnerButtons(discord.ui.ActionRow):
         if self._other_row._r6view._match.finalised:
             button.disabled = True
             await interaction.message.edit(view=self._other_row._r6view)
-            return await interaction.response.send_message(CANNED["finalised"], ephemeral=True)
+            return await interaction.response.send_message(Canned.ERR_R6DRAFT_FINAL, ephemeral=True)
 
         # Disable all buttons in R6ViewButtons
         for label in ["Draft Player", "Ban Map", "Side Select", "Designate MVP", "Report Results"]:
@@ -403,8 +389,7 @@ class R6View(discord.ui.LayoutView):
 
         # If canceled, show cancelation message
         if self.match_canceled:
-            items.append(
-                "This match has been canceled by the queue owner. Your rankings remain unchanged.")
+            items.append(Canned.R6DRAFT_MATCH_CANCEL)
             return "\n".join(items)
 
         # Put team roster
@@ -461,8 +446,7 @@ class R6View(discord.ui.LayoutView):
             items.append(starting_sides)
 
         # Always put disclaimer
-        disclaimer = "\n*-# Although everyone can click the buttons below, only " + \
-            "team captains and the queue owner will be able to interact with them.*"
+        disclaimer = "\n" + Canned.R6DRAFT_DISCLAIMER
         items.append(disclaimer)
 
         return "\n".join(items)

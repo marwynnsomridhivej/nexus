@@ -4,6 +4,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
+from canned import Canned
 from event import Event, MatchFinalisedPayload
 from ui import LeaderboardView
 
@@ -33,7 +34,7 @@ class StatsCog(commands.Cog):
     async def _leaderboard_command(self, interaction: discord.Interaction):
         players = await self.bot.stats_manager.get_guild_players(interaction.guild_id)
         if not players:
-            return await interaction.response.send_message(content="No players are currently ranked in this server", ephemeral=True)
+            return await interaction.response.send_message(Canned.ERR_STATS_NO_PLAYERS, ephemeral=True)
 
         lbview = LeaderboardView(
             source_interaction=interaction,

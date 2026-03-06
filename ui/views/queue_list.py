@@ -52,16 +52,14 @@ class QueueListView(Paginator):
         container = discord.ui.Container(
             # Header section, name type and page
             discord.ui.TextDisplay(
-                content=f"## Queue List [Page {self.current_page + 1}/{self.max_pages}]",
-            ),
+                f"## Queue List [Page {self.current_page + 1}/{self.max_pages}]"),
 
             # Actual part that displays the queue details
             *self.paginate_text_display(),
 
             # Separator is padded at the end in *text_displays
             discord.ui.TextDisplay(
-                content=f"-# Matched criteria:  {"All Open Queues" if not self.criteria else " | ".join(self.criteria)}"
-            ),
+                f"-# Matched criteria:  {"All Open Queues" if not self.criteria else " | ".join(self.criteria)}"),
 
             # Accent color
             accent_color=discord.Color.blurple(),

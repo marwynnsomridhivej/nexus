@@ -1,0 +1,80 @@
+from enum import StrEnum
+
+
+class Canned(StrEnum):
+    """I am too lazy to type everything out and ensure every instance
+    of repeated text is exactly the same, so every bit of static text
+    is mapped to here.
+
+    Format:
+    (PREFIX)_[COG/VIEW/MODAL/FUNCTION]_[DESCRIPTOR]
+
+    Prefixes:
+    ERR         - Used to designate an error message
+    (no prefix) - Used to designate a confirmation or success message
+    """
+
+    # General
+    ERR_PERMS = "ERROR - You do not have permission to run this command"
+
+    # Queues
+    ERR_QUEUE_EXISTS = "ERROR - A queue already exists with the specified name"
+    ERR_QUEUE_NO_EXISTS = "ERROR - No queue exists with the specified name"
+    ERR_QUEUE_NAME_LEN = "ERROR - The specified name must be no longer than 100 characters"
+    ERR_QUEUE_OWNER = "ERROR - Unable to modify the specified queue, as you are not its owner"
+    ERR_QUEUE_ALREADY_IN = "ERROR - You are already in the specified queue"
+    ERR_QUEUE_NOT_IN = "ERROR - You are not in the specified queue"
+    ERR_QUEUE_FULL = "ERROR - The queue you are attempting to join is full, unable to join"
+    ERR_QUEUE_LOCKED_JOIN = "ERROR - The queue you are attempting to join is locked and cannot accept new players at this time"
+    ERR_QUEUE_LOCKED_LEAVE = "ERROR - The queue you are attempting to leave is locked. You cannot leave at this time"
+    ERR_QUEUE_LOCKSTATE_L = "ERROR - The specified queue is already locked"
+    ERR_QUEUE_LOCKSTATE_U = "ERROR - The specified queue is already unlocked"
+    ERR_QUEUE_PROGSTATE = "ERROR - The specified queue currently has a match in progress and cannot be modified"
+    ERR_QUEUE_NO_LIST_RESULTS = "ERROR - Could not find any queues matching the specified criteria"
+
+    # Matches
+    ERR_MATCH_START = "ERROR - Unable to start a match, as you are not the owner of any startable queues"
+    ERR_MATCH_IN_PROGRESS = "ERROR - This match is already in progress"
+    MATCH_DM_CONF = "Players will receive a match start notification in their DMs shortly"
+
+    # Seasons
+    ERR_SEASON_EXISTS = "ERROR - An active season already exists for this server"
+    ERR_SEASON_NO_EXISTS = "ERROR - No active season was found for this server"
+    ERR_SEASON_MIP = "ERROR - There are currently active matches in this server. Please finish them before attempting to stop the current season"
+
+    # Seasons - General Errors
+    ERR_SEASON_GEN_START = "ERROR - An error has occurred. Unable to start a season"
+
+    # Stats
+    ERR_STATS_NO_PLAYERS = "ERROR - No players are currently ranked in this server"
+
+    # Feedback
+    FEEDBACK_CONF = "Thank you. Your feedback has been sent to the developers"
+
+    # R6 Prematch
+    ERR_R6PRE_BOT_USER = "ERROR - Cannot designate a bot user as captain"
+    ERR_R6PRE_INVALID_USER = "ERROR - Cannot designate a user as captain is they are not in the player list"
+    ERR_R6PRE_INVALID_MANUAL = "ERROR - An invalid amount of captains were selected"
+
+    # R6 Prematch - General Errors
+    ERR_R6PRE_GEN = "ERROR - An error has occurred. Unable to start match"
+
+    # R6 Draft
+    ERR_R6DRAFT_OWNER = "ERROR - Only the queue owner can execute this"
+    ERR_R6DRAFT_CAPTAIN = "ERROR - Only a team captain can execute this"
+    ERR_R6DRAFT_NO_DRAFT = "ERROR - There are no players available to draft"
+    ERR_R6DRAFT_DRAFT_TURN = "ERROR - It is not your turn to draft players"
+    ERR_R6DRAFT_BAN_TURN = "ERROR - It is not your turn to ban maps"
+    ERR_R6DRAFT_SIDE = "ERROR - Your team cannot select the starting sides"
+    ERR_R6DRAFT_MVP_EXISTS = "ERROR - You have already designated an MVP for your team"
+    ERR_R6DRAFT_FINAL = "ERROR - The match results have been finalised and cannot be modified"
+    R6DRAFT_MATCH_CANCEL = "This match has been canceled by the queue owner. Your rankings remain unchanged"
+    R6DRAFT_RESET_DEFAULT = "Player draft, map bans, and starting side selection have been reset"
+    R6DRAFT_DISCLAIMER = "-# *Only team captains and the queue owner can interact with the buttons below*"
+
+    # R6 Draft - General Errors
+    ERR_R6DRAFT_GEN_DRAFT = "ERROR - An error has occurred. Unable to draft player"
+    ERR_R6DRAFT_GEN_BAN = "ERROR - An error has occurred. Unable to ban map"
+    ERR_R6DRAFT_GEN_SIDE = "ERROR - An error has occurred. Unable to select starting side"
+    ERR_R6DRAFT_GEN_MVP = "ERROR - An error has occurred. Unable to designate team MVP"
+    ERR_R6DRAFT_GEN_RES = "ERROR - An error has occurred. Unable to report match results"

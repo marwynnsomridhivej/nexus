@@ -16,24 +16,20 @@ class FeedbackView(discord.ui.LayoutView):
         container = discord.ui.Container(
             discord.ui.Section(
                 discord.ui.TextDisplay(
-                    content=f"## Feedback Submission - {self.feedback_type.title()}",
-                ),
-                discord.ui.TextDisplay(
-                    content="\n".join([
-                        "### User Information",
-                        f"- User: {self.interaction.user.mention} | `{self.interaction.user.id}`",
-                        f"- Guild: `{self.interaction.guild.name}` | `{self.interaction.guild_id}`",
-                        f"- Sent at: `{self.interaction.created_at.astimezone().strftime(r"%d/%m/%Y, %H:%M:%S")}`",
-                    ]),
+                    f"## Feedback Submission - {self.feedback_type.title()}"),
+                discord.ui.TextDisplay("\n".join([
+                    "### User Information",
+                    f"- User: {self.interaction.user.mention} | `{self.interaction.user.id}`",
+                    f"- Guild: `{self.interaction.guild.name}` | `{self.interaction.guild_id}`",
+                    f"- Sent at: `{self.interaction.created_at.astimezone().strftime(r"%d/%m/%Y, %H:%M:%S")}`",
+                ]),
                 ),
                 accessory=discord.ui.Thumbnail(
                     self.interaction.user.avatar.url if self.interaction.user.avatar is not None else self.interaction.user.default_avatar
                 )
             ),
             discord.ui.Separator(),
-            discord.ui.TextDisplay(
-                content=f"### Content\n{self.content}"
-            ),
+            discord.ui.TextDisplay(f"### Content\n{self.content}"),
 
             # Accent color
             accent_color=discord.Color.blurple(),

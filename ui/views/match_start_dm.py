@@ -81,8 +81,7 @@ class MatchStartDMView(discord.ui.LayoutView):
             discord.ui.Section(
                 # Header with basic title
                 discord.ui.TextDisplay(
-                    content=f"## Match Starting in {self._guild.name}",
-                ),
+                    f"## Match Starting in {self._guild.name}"),
                 self.text_display[0],
                 accessory=discord.ui.Thumbnail(
                     self._guild.icon.url if self._guild.icon is not None else R6URL.ICON)
@@ -93,7 +92,7 @@ class MatchStartDMView(discord.ui.LayoutView):
 
             # Separator is already padded at the end in *text_display
             discord.ui.TextDisplay(
-                content=f"-# This is an automated message sent to all players that queued for " +
+                f"-# This is an automated message sent to all players that queued for " +
                 f"{self._payload.match_name} in the server {self._guild.name}. " +
                 "If you received this message in error, please notify your server admin."
             ),

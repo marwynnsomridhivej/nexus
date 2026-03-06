@@ -5,6 +5,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
+from canned import Canned
 from event import *
 from exceptions import *
 from queuemanager import CaptSelect
@@ -85,7 +86,7 @@ class MatchCog(commands.GroupCog, name="match"):
             and not entry.in_progress
         }
         if not valid_owned_queues:
-            await interaction.response.send_message(content="Unable to start a match, as you are not the owner of any startable queues.", ephemeral=True)
+            await interaction.response.send_message(Canned.ERR_MATCH_START, ephemeral=True)
             return
 
         prematch_modal = PreMatchModal(self.bot, valid_owned_queues)
@@ -104,7 +105,7 @@ class MatchCog(commands.GroupCog, name="match"):
         try:
             entry = await self.bot.queue_manager.start_match(guild_id, owner_id, name)
         except QueueProgressStateError:
-            await interaction.followup.send(content="This match is already in progress")
+            await interaction.followup.send(Canned.ERR_MATCH_IN_PROGRESS, ephemeral=True)
 
         # For type hints
         assert isinstance(prematch_modal.vc.component,
@@ -140,9 +141,9 @@ class MatchCog(commands.GroupCog, name="match"):
             "entry": entry,
         })
 
-        # Dispatch and confirm
+        # Confirmation message and event dispatch
+        await interaction.followup.send(Canned.MATCH_DM_CONF, ephemeral=True)
         self.bot.dispatch(Event.PREMATCH_MODAL_DONE, payload)
-        await interaction.followup.send(content="Players will receive a match start notification in their DM shortly", ephemeral=True)
 
 
 async def setup(bot):

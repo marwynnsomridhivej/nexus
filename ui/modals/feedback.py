@@ -2,6 +2,8 @@ import traceback
 
 import discord
 
+from canned import Canned
+
 from ..feedback_type import *
 
 
@@ -61,10 +63,7 @@ class FeedbackModal(discord.ui.Modal):
                 allowed_mentions=discord.AllowedMentions.none(),
             )
 
-        await interaction.response.send_message(
-            "Thank you. Your feedback has been sent to the developers.",
-            ephemeral=True,
-        )
+        await interaction.response.send_message(Canned.FEEDBACK_CONF, ephemeral=True)
 
     async def on_error(self, interaction: discord.Interaction, error: Exception):
         self.bot.logger.error(

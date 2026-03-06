@@ -5,6 +5,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
+from canned import Canned
 from event import *
 from exceptions import *
 from queuemanager import *
@@ -35,7 +36,7 @@ class QueueCog(commands.GroupCog, name="queue"):
                 f"> - <@{_id}>" for _id in payload.entry.players
             ])
         ])
-        await self.bot.get_user(payload.entry.owner_id).send(content=content)
+        await self.bot.get_user(payload.entry.owner_id).send(content)
 
     @app_commands.command(name="create", description="Creates a new queue for a custom match")
     @app_commands.rename(queue_type="type")
@@ -55,9 +56,9 @@ class QueueCog(commands.GroupCog, name="queue"):
             msg = f"The queue \"{name}\" has been created for {queue_type}"
             ephemeral = False
         except QueueAlreadyExists:
-            msg = "A queue already exists with the specified name"
+            msg = Canned.ERR_QUEUE_EXISTS
         except ValueError:
-            msg = f"The specified name must be no longer than 100 characters"
+            msg = Canned.ERR_QUEUE_NAME_LEN
         except Exception as e:
             msg = f"An error has occurred: {e}"
             ephemeral = False
@@ -73,9 +74,9 @@ class QueueCog(commands.GroupCog, name="queue"):
             msg = f"Successfully deleted the queue \"{name}\""
             ephemeral = False
         except QueueDoesNotExist:
-            msg = f"No queue exists with the name \"{name}\""
+            msg = Canned.ERR_QUEUE_NO_EXISTS
         except NotQueueOwner:
-            msg = "Unable to delete the specified queue, as you are not its owner"
+            msg = Canned.ERR_QUEUE_OWNER
         except Exception as e:
             msg = f"An error has occurred: {e}"
             ephemeral = False
@@ -98,13 +99,13 @@ class QueueCog(commands.GroupCog, name="queue"):
             q = await self.bot.queue_manager.join_user_to_queue(interaction.guild_id, interaction.user.id, name)
             msg = f"You successfully joined the queue \"{name}\""
         except QueueDoesNotExist:
-            msg = "Unable to find a queue with the specified name"
+            msg = Canned.ERR_QUEUE_NO_EXISTS
         except AlreadyInQueue:
-            msg = "You are already in the specified queue"
+            msg = Canned.ERR_QUEUE_ALREADY_IN
         except QueueIsFull:
-            msg = "Unable to join the specified queue, as it is already full"
+            msg = Canned.ERR_QUEUE_FULL
         except QueueIsLocked:
-            msg = "Unable to join the specified queue, as it is locked"
+            msg = Canned.ERR_QUEUE_LOCKED_JOIN
         except Exception as e:
             msg = f"An error has occurred: {e}"
             ephemeral = False
@@ -135,11 +136,11 @@ class QueueCog(commands.GroupCog, name="queue"):
             await self.bot.queue_manager.leave_user_from_queue(interaction.guild_id, interaction.user.id, name)
             msg = f"You successfully left the queue \"{name}\""
         except QueueDoesNotExist:
-            msg = "Unable to find a queue with the specified name"
+            msg = Canned.ERR_QUEUE_NO_EXISTS
         except NotInQueue:
-            msg = "You are not in the specified queue"
+            msg = Canned.ERR_QUEUE_NOT_IN
         except QueueIsLocked:
-            msg = "Unable to leave the specified queue, as it is locked"
+            msg = Canned.ERR_QUEUE_LOCKED_LEAVE
         except Exception as e:
             msg = f"An error has occurred: {e}"
             ephemeral = False
@@ -163,13 +164,13 @@ class QueueCog(commands.GroupCog, name="queue"):
             msg = f"Queue \"{name}\" has been locked"
             ephemeral = False
         except QueueDoesNotExist:
-            msg = "Unable to find a queue with the specified name"
+            msg = Canned.ERR_QUEUE_NO_EXISTS
         except QueueLockStateError:
-            msg = "The specified queue is alreaedy locked"
+            msg = Canned.ERR_QUEUE_LOCKSTATE_L
         except NotQueueOwner:
-            msg = "Unable to lock the specified queue, as you are not its owner"
+            msg = Canned.ERR_QUEUE_OWNER
         except QueueProgressStateError:
-            msg = "The specified queue currently has a match in progress and cannot be modified"
+            msg = Canned.ERR_QUEUE_PROGSTATE
         except Exception as e:
             msg = f"An error has occurred: {e}"
             ephemeral = False
@@ -193,13 +194,13 @@ class QueueCog(commands.GroupCog, name="queue"):
             msg = f"Queue \"{name}\" has been unlocked"
             ephemeral = False
         except QueueDoesNotExist:
-            msg = "Unable to find a queue with the specified name"
+            msg = Canned.ERR_QUEUE_NO_EXISTS
         except QueueLockStateError:
-            msg = "The specified queue is alreaedy unlocked"
+            msg = Canned.ERR_QUEUE_LOCKSTATE_U
         except NotQueueOwner:
-            msg = "Unable to unlock the specified queue, as you are not its owner"
+            msg = Canned.ERR_QUEUE_OWNER
         except QueueProgressStateError:
-            msg = "The specified queue currently has a match in progress and cannot be modified"
+            msg = Canned.ERR_QUEUE_PROGSTATE
         except Exception as e:
             msg = f"An error has occurred: {e}"
             ephemeral = False
@@ -250,10 +251,11 @@ class QueueCog(commands.GroupCog, name="queue"):
                 ephemeral=ephemeral
             )
         except NoListResults:
-            msg = "Could not find any queues matching specified criteria"
+            msg = Canned.ERR_QUEUE_NO_LIST_RESULTS
         except Exception as e:
             msg = f"An error has occurred: {e}"
-            self.bot.logger.error(f"An exception occurred when trying to list queue: {e}")
+            self.bot.logger.error(
+                f"An exception occurred when trying to list queue: {e}")
             traceback.print_exception(type(e), e, e.__traceback__)
             ephemeral = False
         finally:
