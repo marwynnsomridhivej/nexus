@@ -6,6 +6,7 @@ __pycache__
 
 # File extensions
 .log
+.sh
 
 # Specific files
 config.json
