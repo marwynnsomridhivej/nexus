@@ -3,45 +3,21 @@ from typing import List, Tuple
 
 import discord
 
-from ..urls import R6URL
 from .paginator import Paginator, PaginatorButtonRow
 
 
 class LeaderboardView(Paginator):
-    def __init__(self, *, source_interaction, data):
+    def __init__(self, *, source_interaction, rankings):
         super().__init__(
             source_interaction=source_interaction,
-            data=data,
+            data=rankings,
             per_page=8,
         )
 
         from statsmanager import StatsPlayer
-        previous_points = None
-        previous_rank = None
-        data = []
-        for rank, player in enumerate(self._data, 1):
-            assert isinstance(player, StatsPlayer)
+        self._data: List[Tuple[int, StatsPlayer]] = rankings
 
-            # Initialise the previous point count if not set
-            if previous_points is None:
-                previous_points = player.points
-
-            # Initialise the previous rank if not set
-            if previous_rank is None:
-                previous_rank = rank
-
-            # Check if previous points is the same. If so, keep the previous rank as number
-            if player.points == previous_points:
-                data.append((previous_rank, player))
-                continue
-
-            # Otherwise, append the true rank and player and set previous points/rank to current player stats
-            data.append((rank, player))
-            previous_points = player.points
-            previous_rank = rank
-        self._data: List[Tuple[int, StatsPlayer]] = data
-
-        self.created_time = datetime.now().strftime(r"%d/%m/%Y, %H:%M:%S")
+        self.created_time = f"<t:{int(datetime.now().timestamp())}:f>"
 
     def paginate_text_display(self) -> List[discord.ui.Item]:
         items = []
