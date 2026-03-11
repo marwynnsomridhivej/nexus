@@ -43,7 +43,6 @@ class ManagerBase(ABC):
         """
         if self.__wrapper_data is None:
             async with async_open(self.file_path, "r") as afile:
-                print("IO in __get_wrapper_data")
                 data = json.loads(await afile.read())
                 self.__wrapper_data = data
         return self.__wrapper_data
