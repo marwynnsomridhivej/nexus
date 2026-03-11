@@ -33,7 +33,7 @@ class QueueManager(ManagerBase):
         wrapper = await self._get_or_create_wrapper()
         queue_entry_data = {
             "owner_id":     owner_id,
-            "created_date": datetime.now().strftime(r"%d/%m/%Y, %H:%M:%S"),
+            "created_timestamp": int(datetime.now().timestamp()),
             "type":         queue_type,
             "players":      [],
             "max_players":  MAX_PLAYERS.get(queue_type),

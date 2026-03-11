@@ -176,7 +176,7 @@ class QueueGuildContainer(WrapperBase):
 class QueueEntry(WrapperBase):
     __slots__ = (
         "owner_id",
-        "created_date",
+        "created_timestamp",
         "type",
         "players",
         "max_players",
@@ -186,7 +186,7 @@ class QueueEntry(WrapperBase):
 
     def __init__(self, data: dict):
         self.owner_id: int = data["owner_id"]
-        self.created_date: str = data["created_date"]
+        self.created_timestamp: str = data["created_timestamp"]
         self.type: QueueType = data["type"]
         self.players: List[int] = data["players"]
         self.max_players: int = data["max_players"]
@@ -281,11 +281,11 @@ class QueueEntry(WrapperBase):
             dict: Dictionary representation of the QueueEntry instance
         """
         return {
-            "owner_id":     self.owner_id,
-            "created_date": self.created_date,
-            "type":         self.type,
-            "players":      self.players,
-            "max_players":  self.max_players,
-            "locked":       self.locked,
-            "in_progress":  self.in_progress,
+            "owner_id":             self.owner_id,
+            "created_timestamp":    self.created_timestamp,
+            "type":                 self.type,
+            "players":              self.players,
+            "max_players":          self.max_players,
+            "locked":               self.locked,
+            "in_progress":          self.in_progress,
         }

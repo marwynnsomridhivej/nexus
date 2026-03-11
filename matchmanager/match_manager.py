@@ -38,13 +38,13 @@ class MatchManager(ManagerBase):
 
         # Craft entry data
         match_entry_data = {
-            "created_date": datetime.now().strftime(r"%d/%m/%Y, %H:%M:%S"),
-            "type": payload.entry.type,
-            "voice_channel_id": payload.voice_channel_id,
+            "created_timestamp":    int(datetime.now().timestamp()),
+            "type":                 payload.entry.type,
+            "voice_channel_id":     payload.voice_channel_id,
 
-            "team_a": team_a.serialise(),
-            "team_b": team_b.serialise(),
-            "map": None,
+            "team_a":               team_a.serialise(),
+            "team_b":               team_b.serialise(),
+            "map":                  None,
         }
 
         # Create match entry

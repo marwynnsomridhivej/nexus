@@ -149,7 +149,7 @@ class MatchGuildContainer(WrapperBase):
 
 class MatchEntry(WrapperBase):
     __slots__ = (
-        "created_date",
+        "created_timestamp",
         "type",
         "voice_channel_id",
 
@@ -159,7 +159,7 @@ class MatchEntry(WrapperBase):
     )
 
     def __init__(self, data: dict):
-        self.created_date: str = data["created_date"]
+        self.created_timestamp: str = data["created_timestamp"]
         self.type: QueueType = data["type"]
         self.voice_channel_id: int = data["voice_channel_id"]
 
@@ -294,13 +294,13 @@ class MatchEntry(WrapperBase):
             dict: Dictionary representation of the MatchEntry instance
         """
         return {
-            "created_date":     self.created_date,
-            "type":             self.type,
-            "voice_channel_id": self.voice_channel_id,
+            "created_timestamp":    self.created_timestamp,
+            "type":                 self.type,
+            "voice_channel_id":     self.voice_channel_id,
 
-            "team_a":           self.team_a.serialise(),
-            "team_b":           self.team_b.serialise(),
-            "map":              self.map,
+            "team_a":               self.team_a.serialise(),
+            "team_b":               self.team_b.serialise(),
+            "map":                  self.map,
         }
 
 

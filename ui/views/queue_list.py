@@ -36,7 +36,7 @@ class QueueListView(Paginator):
                 items.append(discord.ui.TextDisplay(
                     "\n".join([
                         f"### {index + 1}. {name.title()} [{entry.type}]",
-                        f"- Created On: `{entry.created_date}`",
+                        f"- Created On: <t:{entry.created_timestamp}:f>",
                         f"- Owner: <@{entry.owner_id}>",
                         players,
                         f"- Locked: `{"Yes" if entry.locked else "No"}`",
