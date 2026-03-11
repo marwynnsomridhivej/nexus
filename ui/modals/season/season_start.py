@@ -38,7 +38,7 @@ class SeasonStartModal(discord.ui.Modal):
         # Type hints
         assert isinstance(self.season_name.component, discord.ui.TextInput)
 
-        self.name = self.season_name.component.value
+        self.name = self.season_name.component.value.lower()
 
     async def on_error(self, interaction: discord.Interaction, error: Exception):
         self.bot.logger.error(
