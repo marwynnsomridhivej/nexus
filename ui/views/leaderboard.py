@@ -7,17 +7,17 @@ from .paginator import Paginator, PaginatorButtonRow
 
 
 class LeaderboardView(Paginator):
-    def __init__(self, *, source_interaction, rankings):
+    def __init__(self, *, source_interaction: discord.Interaction, season, rankings):
         super().__init__(
             source_interaction=source_interaction,
             data=rankings,
             per_page=8,
         )
 
-        from statsmanager import StatsPlayer
+        from statsmanager import StatsPlayer, StatsSeason
+        self._season: StatsSeason = season
         self._data: List[Tuple[int, StatsPlayer]] = rankings
-
-        self.created_time = f"<t:{int(datetime.now().timestamp())}:f>"
+        self.created_time = f"<t:{int(datetime.now().timestamp()) if self._season.is_current else self._season.end_timestamp}:f>"
 
     def paginate_text_display(self) -> List[discord.ui.Item]:
         items = []
@@ -43,14 +43,14 @@ class LeaderboardView(Paginator):
         container = discord.ui.Container(
             # Header, name type and page
             discord.ui.TextDisplay(
-                f"## Leaderboard [Page {self.current_page + 1}/{self.max_pages}]"),
+                f"## Leaderboard - {self._season.name.title()} [Page {self.current_page + 1}/{self.max_pages}]"),
 
             # Actual part that displays leaderboard
             *self.paginate_text_display(),
 
             # Separator is padded at the end in *text_displays
             discord.ui.TextDisplay(
-                f"-# Statistics tabulated as of {self.created_time}"),
+                f"-# Statistics tabulated {"" if self._season.is_current else "and finalised "}as of {self.created_time}"),
 
             # Accent color
             accent_color=discord.Color.blurple(),
