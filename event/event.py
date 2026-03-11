@@ -27,6 +27,9 @@ class Event(StrEnum):
 
     # Dispatched after match finalised to lock and close the thread
     THREAD_CLEANUP = "postmatch_thread_cleanup"
+    
+    # Dispatched after a season has been stopped and rankings are finalised
+    SEASON_STOP = "season_stop"
 
 
 class Reason(StrEnum):

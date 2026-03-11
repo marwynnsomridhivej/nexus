@@ -5,17 +5,21 @@ import discord
 from base import WrapperBase
 from matchmanager import MatchEntry, MatchTeam
 from queuemanager import QueueEntry
+from statsmanager import StatsPlayer, StatsSeason
 
 __all__ = (
+    # Queue
     "QueueFilledPayload",
 
+    # R6 Match
     "PrematchPayload",
     "PrematchDMPayload",
     "DMDeletePayload",
-
     "VCResetPayload",
-
     "MatchFinalisedPayload",
+
+    # Seasons
+    "SeasonEndPayload"
 )
 
 
@@ -270,4 +274,45 @@ class MatchFinalisedPayload(WrapperBase):
             "lobby_vc_id": match_entry.voice_channel_id,
             "winning_team": match_entry.winning_team,
             "losing_team": match_entry.losing_team,
+        })
+
+
+class SeasonEndPayload(WrapperBase):
+    __slots__ = (
+        "__guild_id",
+        "__season",
+        "__ranked_players",
+    )
+
+    def __init__(self, data: dict):
+        self.__guild_id: int = data["guild_id"]
+        self.__season: StatsSeason = data["season"]
+        self.__ranked_players: List[Tuple[int,
+                                          StatsPlayer]] = data["ranked_players"]
+
+    @property
+    def guild_id(self) -> int:
+        return self.__guild_id
+
+    @property
+    def season(self) -> StatsSeason:
+        return self.__season
+
+    @property
+    def ranked_players(self) -> List[Tuple[int, StatsPlayer]]:
+        return self.__ranked_players
+
+    def serialise(self) -> dict:
+        return {
+            "guild_id": self.__guild_id,
+            "season": self.__season,
+            "ranked_players": self.__ranked_players
+        }
+
+    @classmethod
+    def create(cls, *, guild_id: int, season: StatsSeason, ranked_players: List[Tuple[int, StatsPlayer]]) -> "SeasonEndPayload":
+        return cls({
+            "guild_id": guild_id,
+            "season": season,
+            "ranked_players": ranked_players,
         })
