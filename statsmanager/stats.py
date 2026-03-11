@@ -106,7 +106,7 @@ class StatsGuildContainer(WrapperBase):
             dict: Dictionary representation of the SGC instance
         """
         return {
-            "current": self.current.serialise(),
+            "current": self.current.serialise() if self.current else None,
             "history": [season.serialise() for season in self.history]
         }
 
@@ -137,17 +137,11 @@ class StatsSeason(WrapperBase):
         }
 
     @property
-    def start_time_str(self) -> str:
-        return datetime.fromtimestamp(self.start_timestamp).strftime(r"%d/%m/%Y")
-
-    @property
-    def end_time_str(self) -> str:
-        if self.end_timestamp is None:
-            return "Ongoing"
-        return datetime.fromtimestamp(self.end_timestamp).strftime(r"%d/%m/%Y")
+    def playercount(self) -> int:
+        return len(self.players.keys()) if self.players else 0
 
     def stop_season(self) -> None:
-        self.end_timestamp = datetime.now().timestamp()
+        self.end_timestamp = int(datetime.now().timestamp())
 
     def get_player(self, user_id: int, throw: bool = False) -> Union["StatsPlayer", None]:
         """Get a StatsPlayer with the specified name
@@ -232,7 +226,7 @@ class StatsSeason(WrapperBase):
     def create_blank(cls, name: str) -> "StatsSeason":
         return cls({
             "name": name,
-            "start_timestamp": datetime.now().timestamp(),
+            "start_timestamp": int(datetime.now().timestamp()),
             "end_timestamp": None,
             "players": {}
         })
