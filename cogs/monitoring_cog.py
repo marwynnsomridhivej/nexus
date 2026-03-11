@@ -66,6 +66,10 @@ class MonitoringCog(commands.Cog):
                 traceback.print_exception(type(e), e, e.__traceback__)
 
     async def reset_button_vc_move(self, payload: VCResetPayload) -> None:
+        # Don't do anything if it is a 1v1, since no separate VCs were created
+        if payload.is_1v1:
+            return
+
         for team in payload.teams:
             try:
                 await self._move_team_to_lobby_vc(
@@ -78,6 +82,10 @@ class MonitoringCog(commands.Cog):
                 pass
 
     async def delete_vcs(self, payload: MatchFinalisedPayload) -> None:
+        # Don't do anything if it is a 1v1, since no separate VCs were created
+        if payload.is_1v1:
+            return
+
         for team in payload.teams:
             try:
                 await self._move_team_to_lobby_vc(

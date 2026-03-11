@@ -54,11 +54,11 @@ class StatsManager(ManagerBase):
         wrapper.get_or_create(guild_id).current.delete_player(user_id)
         await self.write(wrapper)
 
-    async def award_team(self, *, guild_id: int, team: MatchTeam):
+    async def award_team(self, *, guild_id: int, team: MatchTeam, is_1v1: bool):
         wrapper = await self._get_or_create_wrapper()
         for player_id in team.players:
             wrapper.get_or_create(guild_id).current.award_player(
-                player_id, team.mvp_id, team.win)
+                player_id, team.mvp_id, team.win, is_1v1)
         await self.write(wrapper)
 
     # =====================================

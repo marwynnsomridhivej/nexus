@@ -28,6 +28,7 @@ class StatsCog(commands.Cog):
             await self.bot.stats_manager.award_team(
                 guild_id=payload.guild_id,
                 team=team,
+                is_1v1=payload.is_1v1,
             )
 
     @app_commands.command(name="leaderboard", description="View the server leaderboard")

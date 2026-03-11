@@ -17,6 +17,12 @@ INIT_DISABLED = [
     "Designate MVP",
     "Report Results",
 ]
+INIT_DISABLED_1V1 = [
+    "Draft Player",
+    "Side Select",
+    "Designate MVP",
+    "Report Results",
+]
 
 
 class R6ViewButtons(discord.ui.ActionRow):
@@ -48,8 +54,9 @@ class R6ViewButtons(discord.ui.ActionRow):
 
         Note: This does NOT automatically update the view.
         """
+        items = INIT_DISABLED_1V1 if self._r6view.playercount == 2 else INIT_DISABLED
         for item in self.children:
-            if type(item) == discord.ui.Button and item.label in INIT_DISABLED:
+            if type(item) == discord.ui.Button and item.label in items:
                 item.disabled = True
             else:
                 item.disabled = False
@@ -188,7 +195,12 @@ class R6ViewButtons(discord.ui.ActionRow):
 
         if self._r6view.finished_side_select:
             button.disabled = True
-            await self._set_disabled(interaction, label="Designate MVP", disabled=False)
+
+            # Only enable MVP designation if it is not a 1v1
+            if self._r6view.playercount > 2:
+                await self._set_disabled(interaction, label="Designate MVP", disabled=False)
+
+            # Enable report results regardless
             await self._set_disabled(interaction, label="Report Results", disabled=False)
 
         # Update the text on the R6View
@@ -366,10 +378,12 @@ class R6View(discord.ui.LayoutView):
         ], key=lambda p: p.points, reverse=bool(self.playercount % 2))
 
         # Reverse the draft order IF there is an EVEN number of players (true opposite)
-        # Otherwise, keep it same as draft order
+        # Otherwise, keep it same as draft order.
+        #
+        # If it is a 1v1, also keep it the same as draft order
         self._op_draft_order = [
             self._draft_order[1], self._draft_order[0]
-        ] if self.playercount % 2 == 0 else self._draft_order
+        ] if (self.playercount % 2 == 0 and self.playercount > 2) else self._draft_order
 
     def _get_team_players_txt(self, team: MatchTeam) -> List[int]:
         txt = f"### Team {team.name}"
@@ -515,13 +529,15 @@ class R6View(discord.ui.LayoutView):
             self._payload.guild_id,
             self._match.voice_channel_id,
             [self._match.team_a, self._match.team_b],
+            self.playercount == 2,
         ))
 
     async def _update_match(self) -> MatchEntry:
         self._match = await self._bot.match_manager.get_match(self._payload.guild_id, self._payload.match_name)
 
     def _check_finalised(self) -> bool:
-        if self._match.finalised:
+        finalised_1v1 = self.playercount == 2 and self._match.wins_set
+        if self._match.finalised or finalised_1v1:
             # Stop listening to events on this View
             self.stop()
 
@@ -531,6 +547,7 @@ class R6View(discord.ui.LayoutView):
                 name=self._payload.match_name,
                 owner_id=self._payload.entry.owner_id,
                 match_entry=self._match,
+                is_1v1=self.playercount == 2
             ))
             return True
         return False
@@ -551,6 +568,10 @@ class R6View(discord.ui.LayoutView):
 
     @property
     def draftable_players(self) -> List[Tuple[str, str]]:
+        # Get special 1v1 case out of the way
+        if self.playercount == 2:
+            return []
+
         # [(player displayname, str(player id)), ...]
         return [
             (self._bot.get_guild(self._payload.guild_id).get_member(

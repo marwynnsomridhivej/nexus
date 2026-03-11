@@ -174,12 +174,14 @@ class VCResetPayload(WrapperBase):
         "__guild_id",
         "__lobby_vc_id",
         "__teams",
+        "__is_1v1",
     )
 
     def __init__(self, data: dict):
         self.__guild_id: int = data["guild_id"]
         self.__lobby_vc_id: int = data["lobby_vc_id"]
         self.__teams: List[MatchTeam] = data["teams"]
+        self.__is_1v1: bool = data["is_1v1"]
 
     @property
     def guild_id(self) -> int:
@@ -193,6 +195,10 @@ class VCResetPayload(WrapperBase):
     def teams(self) -> List[MatchTeam]:
         return self.__teams
 
+    @property
+    def is_1v1(self) -> bool:
+        return self.__is_1v1
+
     def serialise(self) -> dict:
         return {
             "guild_id": self.__guild_id,
@@ -201,11 +207,12 @@ class VCResetPayload(WrapperBase):
         }
 
     @classmethod
-    def create(cls, guild_id: int, lobby_vc_id: int, teams: List[MatchTeam]) -> "VCResetPayload":
+    def create(cls, guild_id: int, lobby_vc_id: int, teams: List[MatchTeam], is_1v1: bool) -> "VCResetPayload":
         return cls({
             "guild_id": guild_id,
             "lobby_vc_id": lobby_vc_id,
             "teams": teams,
+            "is_1v1": is_1v1,
         })
 
 
@@ -217,6 +224,7 @@ class MatchFinalisedPayload(WrapperBase):
         "__lobby_vc_id",
         "__winning_team",
         "__losing_team",
+        "__is_1v1",
     )
 
     def __init__(self, data: dict):
@@ -226,6 +234,7 @@ class MatchFinalisedPayload(WrapperBase):
         self.__lobby_vc_id: int = data["lobby_vc_id"]
         self.__winning_team: MatchTeam = data["winning_team"]
         self.__losing_team: MatchTeam = data["losing_team"]
+        self.__is_1v1: bool = data["is_1v1"]
 
     @property
     def guild_id(self) -> int:
@@ -255,6 +264,10 @@ class MatchFinalisedPayload(WrapperBase):
     def losing_team(self) -> MatchTeam:
         return self.__losing_team
 
+    @property
+    def is_1v1(self) -> bool:
+        return self.__is_1v1
+
     def serialise(self) -> dict:
         return {
             "guild_id": self.__guild_id,
@@ -263,10 +276,11 @@ class MatchFinalisedPayload(WrapperBase):
             "lobby_vc_id": self.__lobby_vc_id,
             "winning_team": self.__winning_team,
             "losing_team": self.__losing_team,
+            "is_1v1": self.__is_1v1,
         }
 
     @classmethod
-    def create(cls, *, guild_id: int, name: str, owner_id: int, match_entry: MatchEntry) -> "MatchFinalisedPayload":
+    def create(cls, *, guild_id: int, name: str, owner_id: int, match_entry: MatchEntry, is_1v1: bool) -> "MatchFinalisedPayload":
         return cls({
             "guild_id": guild_id,
             "name": name,
@@ -274,6 +288,7 @@ class MatchFinalisedPayload(WrapperBase):
             "lobby_vc_id": match_entry.voice_channel_id,
             "winning_team": match_entry.winning_team,
             "losing_team": match_entry.losing_team,
+            "is_1v1": is_1v1,
         })
 
 

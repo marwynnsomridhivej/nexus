@@ -200,13 +200,14 @@ class StatsSeason(WrapperBase):
             raise PlayerDoesNotExist(user_id)
         del self.players[user_id]
 
-    def award_player(self, user_id: int, mvp_id: int, win: bool) -> None:
+    def award_player(self, user_id: int, mvp_id: int, win: bool, is_1v1: bool) -> None:
         """Awards the specified player points for winning or losing a match
 
         Args:
             user_id (int): The ID of the player
             mvp_id (int): The ID of the team's MVP
             win (bool): Whether or not the player was on the winning team
+            is_1v1 (bool): Whether or not the match played was a 1v1
         """
         try:
             player = self.get_player(user_id, throw=True)
@@ -214,7 +215,7 @@ class StatsSeason(WrapperBase):
             player = self.create_player(user_id)
 
         func = player.win if win else player.lose
-        func(user_id == mvp_id)
+        func(user_id == mvp_id, is_1v1)
 
     def serialise(self) -> dict:
         """Convert StatsSeason instance representation into a dict
@@ -263,16 +264,17 @@ class StatsPlayer(WrapperBase):
         self.points: int = data["points"]
         self.max_points: int = data["max_points"]
 
-    def win(self, mvp: bool = False) -> None:
+    def win(self, mvp, is_1v1: bool) -> None:
         """Awards a win to the player and adjusts values accordingly
 
         Args:
-            mvp (bool, optional): Whether or not the player was the team MVP. Defaults to False.
+            mvp (bool): Whether or not the player was the team MVP
+            is_1v1 (bool): Whether or not the match played was a 1v1
         """
         self.wins += 1
 
-        # Default point gain per win
-        self.points += 2
+        # Default point gain per win (+1 for 1v1, +2 otherwise)
+        self.points += 1 if is_1v1 else 2
 
         if mvp:
             # 1 bonus point, and MVP designation
@@ -282,15 +284,16 @@ class StatsPlayer(WrapperBase):
         if self.points > self.max_points:
             self.max_points = self.points
 
-    def lose(self, mvp: bool = False) -> None:
+    def lose(self, mvp: bool, is_1v1) -> None:
         """Awards a loss to the player and adjusts values accordingly
 
         Args:
-            mvp (bool, optional): Whether or not the player was the team MVP. Defaults to False.
+            mvp (bool): Whether or not the player was the team MVP
+            is_1v1 (bool): Whether or not the match played was a 1v1
         """
         self.losses += 1
 
-        # Default point loss per loss
+        # Default point loss per loss (1v1 does not affect point loss)
         self.points -= 1
 
         if mvp:
