@@ -18,7 +18,7 @@ class StatsManager(ManagerBase):
     def __init__(self, stats_loc: str):
         super().__init__(stats_loc, "stats")
 
-    async def load(self) -> None:
+    async def load(self):
         await super().load(name="StatsManager")
 
     # =====================================
