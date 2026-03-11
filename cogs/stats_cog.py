@@ -31,6 +31,7 @@ class StatsCog(commands.Cog):
             )
 
     @app_commands.command(name="leaderboard", description="View the server leaderboard")
+    @app_commands.describe(name="The name of the season you would like to view rankings for")
     async def _leaderboard_command(self, interaction: discord.Interaction, name: Optional[str] = None):
         guild_id = interaction.guild_id
 
