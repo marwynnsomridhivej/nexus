@@ -51,6 +51,7 @@ class Canned(StrEnum):
 
     # Stats
     ERR_STATS_NO_PLAYERS = "ERROR - No players are currently ranked in this server for this season"
+    ERR_STATS_INVALID_SEASON_NAME = "ERROR - Could not find a season with the specified name"
 
     # Feedback
     FEEDBACK_CONF = "Thank you. Your feedback has been sent to the developers"
