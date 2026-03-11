@@ -60,6 +60,11 @@ class SeasonCog(commands.GroupCog, name="season"):
         season_start_modal = SeasonStartModal(bot=self.bot)
         await interaction.response.send_modal(season_start_modal)
         await season_start_modal.wait()
+        name = season_start_modal.name
+
+        # Make sure the specified name is not a duplicate
+        if any([name == season.name for season in await self.bot.stats_manager.get_all_seasons(interaction.guild_id)]):
+            return await interaction.followup.send(Canned.ERR_SEASON_DUPLICATE_NAME, ephemeral=True)
 
         # Start a season in the guild with the specified name
         await self.bot.stats_manager.start_season(

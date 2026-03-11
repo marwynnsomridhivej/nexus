@@ -43,6 +43,7 @@ class Canned(StrEnum):
     ERR_SEASON_EXISTS = "ERROR - An active season already exists for this server"
     ERR_SEASON_NO_EXISTS = "ERROR - No active season was found for this server"
     ERR_SEASON_MIP = "ERROR - There are currently active matches in this server. Please finish them before attempting to stop the current season"
+    ERR_SEASON_DUPLICATE_NAME = "ERROR - The specified name has already been used for a previous season"
     SEASON_STOP = "The current season has been stopped and rankings have been finalised"
     SEASON_STOP_DM_CONF = "All players who participated in the current season have been sent their season recaps in their DMs"
 
