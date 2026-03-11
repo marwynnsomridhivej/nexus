@@ -17,6 +17,7 @@ class ManagerBase(ABC):
         self.__dir = _dir
         self.file_path = f"{self.__dir}/{name}.json"
         self._logger = logging.getLogger()
+        self.__wrapper_data: dict = None
 
     @abstractmethod
     async def load(self, *, name: str):
@@ -32,7 +33,7 @@ class ManagerBase(ABC):
         self._logger.info(f"[{name}] Successfully loaded")
 
     async def __get_wrapper_data(self) -> dict:
-        """Get wrapper data from disk
+        """Get wrapper data from disk and initialise in-memory object
 
         Raises:
             FileNotFoundError: Wrapper data file was not found on disk
@@ -40,17 +41,23 @@ class ManagerBase(ABC):
         Returns:
             dict: Wrapper data dict
         """
-        async with async_open(self.file_path, "r") as afile:
-            return json.loads(await afile.read())
+        if self.__wrapper_data is None:
+            async with async_open(self.file_path, "r") as afile:
+                print("IO in __get_wrapper_data")
+                data = json.loads(await afile.read())
+                self.__wrapper_data = data
+        return self.__wrapper_data
 
     async def write(self, wrapper: WrapperBase) -> None:
-        """Writes wrapper data to disk
+        """Writes wrapper data to disk and updates in-memory object
 
         Args:
             wrapper (WrapperBase): The wrapper object to serialise
         """
+        data = wrapper.serialise()
+        # self.__wrapper_data = data
         async with async_open(self.file_path, "w") as afile:
-            await afile.write(json.dumps(wrapper.serialise(), indent=4))
+            await afile.write(json.dumps(data, indent=4))
 
     @abstractmethod
     async def _get_or_create_wrapper(self, *, cls: WrapperBase.__class__) -> WrapperBase:
