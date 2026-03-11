@@ -6,7 +6,8 @@ from discord.ext import commands
 
 from canned import Canned
 from event import *
-from ui import ConfirmationModal, SeasonEndDMView, SeasonStartModal
+from ui import (ConfirmationModal, SeasonEndDMView, SeasonsListView,
+                SeasonStartModal)
 
 
 class SeasonCog(commands.GroupCog, name="season"):
@@ -73,8 +74,10 @@ class SeasonCog(commands.GroupCog, name="season"):
             return await interaction.response.send_message(Canned.ERR_PERMS, ephemeral=True)
 
         try:
+            # Ensure a season exists (so we can stop it lol)
             await self.bot.stats_manager.ensure_season(guild_id=interaction.guild_id)
         except ValueError:
+            # If no season, send error message
             return await interaction.response.send_message(Canned.ERR_SEASON_NO_EXISTS, ephemeral=True)
 
         season_end_modal = ConfirmationModal(operation="Stop Season", custom={
@@ -94,8 +97,8 @@ class SeasonCog(commands.GroupCog, name="season"):
             return await interaction.response.send_message(Canned.ERR_SEASON_MIP, ephemeral=True)
 
         # Get season object and ranked players before season stop
-        season = await self.bot.stats_manager.get_season_info(guild_id=guild_id)
-        ranked_players = await self.bot.stats_manager.get_current_season_rankings(guild_id=guild_id)
+        season = await self.bot.stats_manager.get_season(guild_id=guild_id)
+        ranked_players = await self.bot.stats_manager.get_season_rankings(guild_id=guild_id)
 
         # Proceed to stop season
         await self.bot.stats_manager.stop_season(guild_id=guild_id)
@@ -109,6 +112,21 @@ class SeasonCog(commands.GroupCog, name="season"):
                 season=season,
                 ranked_players=ranked_players,
             ))
+
+    @app_commands.command(name="list", description="List information about all current and previous seasons")
+    async def _list_season(self, interaction: discord.Interaction):
+        seasons = await self.bot.stats_manager.get_all_seasons(interaction.guild_id)
+
+        seasons_list_view = SeasonsListView(
+            source_interaction=interaction,
+            seasons=seasons,
+        )
+        seasons_list_view.init_components()
+
+        await interaction.response.send_message(
+            view=seasons_list_view,
+            ephemeral=True
+        )
 
 
 async def setup(bot):
