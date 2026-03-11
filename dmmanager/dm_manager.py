@@ -22,7 +22,7 @@ class DMManager(ManagerBase):
         wrapper = await self._get_or_create_wrapper()
         for identifier, message_id in wrapper.data.items():
             guild_id, user_id = [int(_id) for _id in identifier.split("_")]
-            user = await self.bot.get_user(user_id)
+            user = self.bot.get_user(user_id)
             if user is None:
                 continue
             dm_channel = await user.create_dm()
