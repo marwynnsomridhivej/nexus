@@ -22,7 +22,10 @@ class DMManager(ManagerBase):
         wrapper = await self._get_or_create_wrapper()
         for identifier, message_id in wrapper.data.items():
             guild_id, user_id = [int(_id) for _id in identifier.split("_")]
-            dm_channel = await self.bot.get_user(user_id).create_dm()
+            user = await self.bot.get_user(user_id)
+            if user is None:
+                continue
+            dm_channel = await user.create_dm()
             try:
                 await dm_channel.get_partial_message(message_id).delete()
                 self.bot.logger.info(

@@ -28,9 +28,11 @@ class MatchCog(commands.GroupCog, name="match"):
         self.bot.logger.info("[MatchCog] Successfully loaded")
 
     async def _prematch_dm(self, payload: PrematchDMPayload) -> None:
-        # TODO: Craft a message to be sent to captains once post-match flow is established
         for user_id in payload.entry.players:
-            message = await self.bot.get_user(user_id).send(view=MatchStartDMView(
+            user = self.bot.get_user(user_id)
+            if user is None:
+                continue
+            message = await user.send(view=MatchStartDMView(
                 guild=self.bot.get_guild(payload.guild_id),
                 payload=payload,
             ))
@@ -79,6 +81,14 @@ class MatchCog(commands.GroupCog, name="match"):
     async def _start_match(self, interaction: discord.Interaction):
         guild_id = interaction.guild_id
         owner_id = interaction.user.id
+
+        # Check if the guild has an active season
+        try:
+            await self.bot.stats_manager.ensure_season(guild_id=guild_id)
+        except ValueError:
+            return await interaction.response.send_message(Canned.ERR_SEASON_NO_EXISTS, ephemeral=True)
+
+        # See if the person starting the match has any queues they can start from
         owned_queues = await self.bot.queue_manager.get_queues_owned_by(guild_id, owner_id)
         valid_owned_queues = {
             name: entry for name, entry in owned_queues.items()
@@ -86,8 +96,7 @@ class MatchCog(commands.GroupCog, name="match"):
             and not entry.in_progress
         }
         if not valid_owned_queues:
-            await interaction.response.send_message(Canned.ERR_MATCH_START, ephemeral=True)
-            return
+            return await interaction.response.send_message(Canned.ERR_MATCH_START, ephemeral=True)
 
         prematch_modal = PreMatchModal(self.bot, valid_owned_queues)
         await interaction.response.send_modal(prematch_modal)

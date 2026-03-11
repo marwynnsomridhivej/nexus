@@ -36,7 +36,12 @@ class QueueCog(commands.GroupCog, name="queue"):
                 f"> - <@{_id}>" for _id in payload.entry.players
             ])
         ])
-        await self.bot.get_user(payload.entry.owner_id).send(content)
+        user = self.bot.get_user(payload.entry.owner_id)
+        if user is None:
+            return self.bot.logger.info(
+                f"Could not send queue full DM to user {payload.entry.owner_id} (not found)"
+            )
+        await user.send(content)
 
     @app_commands.command(name="create", description="Creates a new queue for a custom match")
     @app_commands.rename(queue_type="type")
