@@ -1,8 +1,10 @@
+from typing import Dict
+
 import discord
 
 
 class ConfirmationModal(discord.ui.Modal):
-    def __init__(self, *, operation: str, custom: dict = {}):
+    def __init__(self, *, operation: str, custom: Dict[str, str] = {}):
         super().__init__(title=f"{operation.title()} Confirmation")
 
         # Allow for custom UI text
@@ -17,8 +19,8 @@ class ConfirmationModal(discord.ui.Modal):
     def init_components(self) -> None:
         self.confirm = discord.ui.Label(
             text=self.custom_text or "Are you sure?",
-            description=self.custom_description or "This operation cannot be undone. Only proceed " +
-            "if you know what you are doing. You can also cancel this modal to not proceed.",
+            description=self.custom_description or "This operation cannot be undone. " +
+            "Only proceed if you know what you are doing.",
             component=discord.ui.Select(
                 options=[
                     discord.SelectOption(
