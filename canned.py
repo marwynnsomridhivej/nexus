@@ -36,18 +36,21 @@ class Canned(StrEnum):
     # Matches
     ERR_MATCH_START = "ERROR - Unable to start a match, as you are not the owner of any startable queues"
     ERR_MATCH_IN_PROGRESS = "ERROR - This match is already in progress"
+    ERR_MATCH_SEASON = "ERROR - There is no active season in this server. Create an active season with `/season start`"
     MATCH_DM_CONF = "Players will receive a match start notification in their DMs shortly"
 
     # Seasons
     ERR_SEASON_EXISTS = "ERROR - An active season already exists for this server"
     ERR_SEASON_NO_EXISTS = "ERROR - No active season was found for this server"
     ERR_SEASON_MIP = "ERROR - There are currently active matches in this server. Please finish them before attempting to stop the current season"
+    SEASON_STOP = "The current season has been stopped and rankings have been finalised"
+    SEASON_STOP_DM_CONF = "All players who participated in the current season have been sent their season recaps in their DMs"
 
     # Seasons - General Errors
     ERR_SEASON_GEN_START = "ERROR - An error has occurred. Unable to start a season"
 
     # Stats
-    ERR_STATS_NO_PLAYERS = "ERROR - No players are currently ranked in this server"
+    ERR_STATS_NO_PLAYERS = "ERROR - No players are currently ranked in this server for this season"
 
     # Feedback
     FEEDBACK_CONF = "Thank you. Your feedback has been sent to the developers"
