@@ -54,7 +54,7 @@ class ManagerBase(ABC):
             wrapper (WrapperBase): The wrapper object to serialise
         """
         data = wrapper.serialise()
-        # self.__wrapper_data = data
+        self.__wrapper_data = data
         async with async_open(self.file_path, "w") as afile:
             await afile.write(json.dumps(data, indent=4))
 
