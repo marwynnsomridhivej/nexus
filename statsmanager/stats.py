@@ -128,8 +128,8 @@ class StatsSeason(WrapperBase):
 
     def __init__(self, data: dict):
         self.name: str = data["name"]
-        self.start_timestamp: float = data["start_timestamp"]
-        self.end_timestamp: float = data.get("end_timestamp", None)
+        self.start_timestamp: int = data["start_timestamp"]
+        self.end_timestamp: int = data.get("end_timestamp", None)
 
         assert isinstance(data["players"], dict)
         self.players: Dict[int, StatsPlayer] = {

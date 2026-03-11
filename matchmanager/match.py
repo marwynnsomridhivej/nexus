@@ -159,7 +159,7 @@ class MatchEntry(WrapperBase):
     )
 
     def __init__(self, data: dict):
-        self.created_timestamp: str = data["created_timestamp"]
+        self.created_timestamp: int = data["created_timestamp"]
         self.type: QueueType = data["type"]
         self.voice_channel_id: int = data["voice_channel_id"]
 

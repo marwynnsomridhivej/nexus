@@ -186,7 +186,7 @@ class QueueEntry(WrapperBase):
 
     def __init__(self, data: dict):
         self.owner_id: int = data["owner_id"]
-        self.created_timestamp: str = data["created_timestamp"]
+        self.created_timestamp: int = data["created_timestamp"]
         self.type: QueueType = data["type"]
         self.players: List[int] = data["players"]
         self.max_players: int = data["max_players"]
