@@ -1,9 +1,12 @@
+from typing import Coroutine, Dict
+
 import discord
 from discord import app_commands
 from discord.ext import commands
 
 from canned import Canned
-from ui import ConfirmationModal, SeasonStartModal
+from event import *
+from ui import ConfirmationModal, SeasonEndDMView, SeasonStartModal
 
 
 class SeasonCog(commands.GroupCog, name="season"):
@@ -12,11 +15,31 @@ class SeasonCog(commands.GroupCog, name="season"):
         self.bot: Bot = bot
 
     async def cog_load(self):
+        _handlers: Dict[Coroutine, Event] = {
+            self._send_season_end_dms: Event.SEASON_STOP
+        }
+        for coro, event in _handlers.items():
+            self.bot.add_listener(coro, f"on_{event}")
+
         self.bot.logger.info("[SeasonCog] Successfully loaded")
 
     def _ensure_perms(self, interaction: discord.Interaction) -> bool:
         # Make sure user has "manage server" permissions
         return interaction.user.guild_permissions.manage_guild
+
+    async def _send_season_end_dms(self, payload: SeasonEndPayload) -> None:
+        for player in payload.season.players.values():
+            user = self.bot.get_user(player.id)
+            if user is None:
+                continue
+            rank = discord.utils.find(
+                lambda d: d[1].id == player.id, payload.ranked_players)[0]
+            await user.send(view=SeasonEndDMView(
+                guild=self.bot.get_guild(payload.guild_id),
+                season=payload.season,
+                player=player,
+                rank=rank,
+            ))
 
     @app_commands.command(name="start", description="Starts a new season")
     async def _start_season(self, interaction: discord.Interaction):
@@ -24,12 +47,13 @@ class SeasonCog(commands.GroupCog, name="season"):
             return await interaction.response.send_message(Canned.ERR_PERMS, ephemeral=True)
 
         try:
-            # Send an error message if a season already exists
-            await self.bot.stats_manager.ensure_season(
-                guild_id=interaction.guild_id,
-                throw_if_found=True
-            )
+            # Check if a season exists
+            await self.bot.stats_manager.ensure_season(guild_id=interaction.guild_id)
         except ValueError:
+            # Error means no season, which is what we want
+            pass
+        else:
+            # If no errors, means season exists, so we send error message here
             return await interaction.response.send_message(Canned.ERR_SEASON_EXISTS, ephemeral=True)
 
         season_start_modal = SeasonStartModal(bot=self.bot)
@@ -41,6 +65,7 @@ class SeasonCog(commands.GroupCog, name="season"):
             guild_id=interaction.guild_id,
             name=season_start_modal.name
         )
+        await interaction.followup.send(f"Season \"{season_start_modal.name}\" has been started", ephemeral=True)
 
     @app_commands.command(name="stop", description="Stops the current active season")
     async def _stop_season(self, interaction: discord.Interaction):
@@ -52,7 +77,9 @@ class SeasonCog(commands.GroupCog, name="season"):
         except ValueError:
             return await interaction.response.send_message(Canned.ERR_SEASON_NO_EXISTS, ephemeral=True)
 
-        season_end_modal = ConfirmationModal(operation="Stop Season")
+        season_end_modal = ConfirmationModal(operation="Stop Season", custom={
+            "yes": "I understand and wish to stop the current season",
+        })
         await interaction.response.send_modal(season_end_modal)
         await season_end_modal.wait()
 
@@ -60,8 +87,28 @@ class SeasonCog(commands.GroupCog, name="season"):
         if not season_end_modal.proceed:
             return
 
-        if await self.bot.match_manager.has_running_match(interaction.guild_id):
-            await interaction.response.send_message(Canned.ERR_SEASON_MIP, ephemeral=True)
+        guild_id = interaction.guild_id
+
+        # Don't proceed if there are active matches in the current season
+        if await self.bot.match_manager.has_running_match(guild_id):
+            return await interaction.response.send_message(Canned.ERR_SEASON_MIP, ephemeral=True)
+
+        # Get season object and ranked players before season stop
+        season = await self.bot.stats_manager.get_season_info(guild_id=guild_id)
+        ranked_players = await self.bot.stats_manager.get_current_season_rankings(guild_id=guild_id)
+
+        # Proceed to stop season
+        await self.bot.stats_manager.stop_season(guild_id=guild_id)
+        await interaction.followup.send(Canned.SEASON_STOP, ephemeral=True)
+        await interaction.followup.send(Canned.SEASON_STOP_DM_CONF, ephemeral=True)
+
+        # Dispatch season end event if there were active players in the season
+        if season.players:
+            self.bot.dispatch(Event.SEASON_STOP, SeasonEndPayload.create(
+                guild_id=guild_id,
+                season=season,
+                ranked_players=ranked_players,
+            ))
 
 
 async def setup(bot):
