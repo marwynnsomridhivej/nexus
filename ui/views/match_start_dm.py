@@ -3,6 +3,7 @@ from typing import List
 import discord
 
 from event import PrematchDMPayload
+
 from ..urls import R6URL
 
 
