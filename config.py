@@ -39,13 +39,11 @@ class Config(object):
         self.log_dir = data["log_dir"]
         self.command_prefix = data["command_prefix"]
 
-        self.cogs = [f"cogs.{cog}" for cog in [
-            "match_cog",
-            "monitoring_cog",
-            "queue_cog",
-            "report_cog",
-            "stats_cog",
-        ]]
+        # Dynamically find cogs based on filename criteria
+        self.cogs = [
+            f"cogs.{_dir[:-3]}" for _dir in os.listdir("./cogs")
+            if _dir.endswith("_cog.py")
+        ]
 
         if not os.path.exists(self.data_dir):
             os.mkdir(self.data_dir)
