@@ -20,6 +20,7 @@ class MonitoringCog(commands.Cog):
             self.delete_vcs: Event.MATCH_FINALISED,
             self.delete_dms: Event.MATCH_FINALISED,
             self.explicit_delete_dms: Event.PREMATCH_DM_DELETE,
+            self.increment_match_count: Event.MATCH_FINALISED,
             self.thread_cleanup: Event.THREAD_CLEANUP,
         }
         for coro, event in _handlers.items():
@@ -108,6 +109,9 @@ class MonitoringCog(commands.Cog):
 
     async def explicit_delete_dms(self, payload: DMDeletePayload) -> None:
         await self._delete_dms(payload.guild_id, payload.players)
+
+    async def increment_match_count(self, payload: MatchFinalisedPayload) -> None:
+        await self.bot.stats_manager.increment_season_match_count(payload.guild_id)
 
     async def thread_cleanup(self, payload: PrematchPayload) -> None:
         thread_channel: discord.Thread = self.bot.get_channel(
