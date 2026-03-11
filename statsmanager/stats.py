@@ -123,6 +123,8 @@ class StatsSeason(WrapperBase):
         "name",
         "start_timestamp",
         "end_timestamp",
+        "match_count",
+        "archived",
         "players",
     )
 
@@ -130,6 +132,8 @@ class StatsSeason(WrapperBase):
         self.name: str = data["name"]
         self.start_timestamp: int = data["start_timestamp"]
         self.end_timestamp: int = data.get("end_timestamp", None)
+        self.match_count: int = data["match_count"]
+        self.archived: bool = data["archived"]
 
         assert isinstance(data["players"], dict)
         self.players: Dict[int, StatsPlayer] = {
@@ -137,11 +141,16 @@ class StatsSeason(WrapperBase):
         }
 
     @property
-    def playercount(self) -> int:
+    def player_count(self) -> int:
         return len(self.players.keys()) if self.players else 0
+
+    @property
+    def is_current(self) -> bool:
+        return not self.archived
 
     def stop_season(self) -> None:
         self.end_timestamp = int(datetime.now().timestamp())
+        self.archived = True
 
     def get_player(self, user_id: int, throw: bool = False) -> Union["StatsPlayer", None]:
         """Get a StatsPlayer with the specified name
@@ -217,6 +226,8 @@ class StatsSeason(WrapperBase):
             "name": self.name,
             "start_timestamp": self.start_timestamp,
             "end_timestamp": self.end_timestamp,
+            "match_count": self.match_count,
+            "archived": self.archived,
             "players": {
                 user_id: player.serialise() for user_id, player in self.players.items()
             }
@@ -228,6 +239,8 @@ class StatsSeason(WrapperBase):
             "name": name,
             "start_timestamp": int(datetime.now().timestamp()),
             "end_timestamp": None,
+            "match_count": 0,
+            "archived": False,
             "players": {}
         })
 
