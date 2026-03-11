@@ -34,7 +34,7 @@ class SeasonEndDMView(discord.ui.LayoutView):
         # Individual Stats
         stats = discord.ui.TextDisplay("\n".join([
             f"### Individual Stats",
-            f"- Server rank: `{self._rank}`/`{self._season.playercount}`",
+            f"- Server rank: `{self._rank}`/`{self._season.player_count}`",
             f"- Matches Played: `{self._player.matches_played}`",
             f"- Points: `{self._player.points}` `({self._player.max_points} peak)`",
             f"- Wins: `{self._player.wins}`",
