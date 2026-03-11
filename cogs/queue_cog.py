@@ -29,7 +29,7 @@ class QueueCog(commands.GroupCog, name="queue"):
     async def _notify_queue_owner_full(self, payload: QueueFilledPayload) -> None:
         content = "\n".join([
             f"A queue you own is full. Details are as follows:",
-            f"> Server: {self.bot.get_guild(payload.guild_id)}"
+            f"> Server: {self.bot.get_guild(payload.guild_id)}",
             f"> Name: {payload.name}",
             "> Players:",
             "\n".join([
