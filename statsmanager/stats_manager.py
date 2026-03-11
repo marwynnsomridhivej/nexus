@@ -1,10 +1,13 @@
+import copy
 from typing import List, Tuple
+
+import discord
 
 from base import ManagerBase
 from exceptions import PlayerDoesNotExist
+from matchmanager import MatchTeam
 
 from .stats import *
-from matchmanager import MatchTeam
 
 __all__ = (
     "StatsManager",
@@ -62,7 +65,7 @@ class StatsManager(ManagerBase):
     # ============SEASONS STUFF============
     # =====================================
     async def ensure_season(self, *, guild_id: int) -> None:
-        """Ensures the specified guild has an active season
+        """Ensures the specified guild has an active season, or if the named one exists
 
         Args:
             guild_id (int): The ID of the guild
@@ -88,20 +91,49 @@ class StatsManager(ManagerBase):
         wrapper.get_or_create(guild_id).stop_current_season()
         await self.write(wrapper)
 
-    async def get_season_info(self, *, guild_id: int) -> StatsSeason:
+    async def get_season(self, *, guild_id: int, name: str = None) -> StatsSeason:
         wrapper = await self._get_or_create_wrapper()
-        return wrapper.get_or_create(guild_id).current
+        sgc = wrapper.get_or_create(guild_id)
 
-    async def get_current_season_rankings(self, *, guild_id: int) -> List[Tuple[int, StatsPlayer]]:
+        # If no name specified, return current season details
+        if name is None:
+            return sgc.current
+
+        # Find first instance of season which matches the specified name
+        seasons = copy.deepcopy(sgc.history)
+        if isinstance(sgc.current, StatsSeason):
+            seasons.insert(0, sgc.current)
+        return discord.utils.find(lambda s: s.name == name, seasons)
+
+    async def get_season_rankings(self, *, guild_id: int, name: str = None) -> List[Tuple[int, StatsPlayer]]:
         wrapper = await self._get_or_create_wrapper()
+        sgc = wrapper.get_or_create(guild_id)
+
+        # Get appropriate season
+        if name is None:
+            season = sgc.current
+        else:
+            name = name.lower()
+            seasons = copy.deepcopy(sgc.history)
+            if isinstance(sgc.current, StatsSeason):
+                seasons.insert(0, sgc.current)
+            season = discord.utils.find(
+                lambda s: s.name == name, seasons)
+
+        # If season not found and name was specified, raise ValueError
+        if season is None:
+            raise ValueError(
+                f"No season exists with the name \"{name}\"")
+
         players = [
-            p for p in wrapper.get_or_create(guild_id).current.players.values()
+            p for p in season.players.values()
         ]
-        
+
         # Sort player list by highest to lowest by points
         # Point tiebreak handled by win loss ratio
         # Win loss ratio tiebreak handled by matches played
-        players.sort(key=lambda p: (p.points, p.times_mvp, p.wl_ratio, p.matches_played), reverse=True)
+        players.sort(key=lambda p: (p.points, p.times_mvp,
+                     p.wl_ratio, p.matches_played), reverse=True)
 
         previous_points = None
         previous_rank = None
@@ -124,5 +156,20 @@ class StatsManager(ManagerBase):
             rank_ordered.append((rank, player))
             previous_points = player.points
             previous_rank = rank
-        
+
         return rank_ordered
+
+    async def get_all_seasons(self, guild_id: int) -> List[StatsSeason]:
+        wrapper = await self._get_or_create_wrapper()
+
+        current = wrapper.get_or_create(guild_id).current
+        seasons = copy.deepcopy(wrapper.get_or_create(guild_id).history)
+        if isinstance(current, StatsSeason):
+            seasons.insert(0, current)
+
+        return seasons
+
+    async def increment_season_match_count(self, guild_id: int) -> None:
+        wrapper = await self._get_or_create_wrapper()
+        wrapper.get_or_create(guild_id).current.match_count += 1
+        await self.write(wrapper)
