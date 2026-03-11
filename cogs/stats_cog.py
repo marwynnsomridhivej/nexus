@@ -32,13 +32,22 @@ class StatsCog(commands.Cog):
 
     @app_commands.command(name="leaderboard", description="View the server leaderboard")
     async def _leaderboard_command(self, interaction: discord.Interaction):
-        players = await self.bot.stats_manager.get_guild_players(interaction.guild_id)
-        if not players:
+        guild_id = interaction.guild_id
+
+        # Ensure an active season exists
+        try:
+            await self.bot.stats_manager.ensure_season(guild_id=guild_id)
+        except ValueError:
+            return await interaction.response.send_message(Canned.ERR_SEASON_NO_EXISTS, ephemeral=True)
+
+        # Ensure we have rankings and the season isn't empty (aka stats exist)
+        ranked_players = await self.bot.stats_manager.get_current_season_rankings(guild_id=guild_id)
+        if not ranked_players:
             return await interaction.response.send_message(Canned.ERR_STATS_NO_PLAYERS, ephemeral=True)
 
         lbview = LeaderboardView(
             source_interaction=interaction,
-            data=sorted(players, key=lambda p: p.points, reverse=True)
+            rankings=ranked_players
         )
         lbview.init_components()
 
