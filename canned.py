@@ -17,6 +17,7 @@ class Canned(StrEnum):
     # General
     ACTIVITY_HELP = "/help | F2 vertical grip!"
     ERR_PERMS = "ERROR - You do not have permission to run this command"
+    ERR_BOT_USER = "ERROR - This operation cannot be done on bot users"
 
     # Queues
     ERR_QUEUE_EXISTS = "ERROR - A queue already exists with the specified name"
@@ -52,6 +53,7 @@ class Canned(StrEnum):
 
     # Stats
     ERR_STATS_NO_PLAYERS = "ERROR - No players are currently ranked in this server for this season"
+    ERR_STATS_PLAYER_NO_RANKED = "ERROR - The specified player is not currently ranked for this season"
     ERR_STATS_INVALID_SEASON_NAME = "ERROR - Could not find a season with the specified name"
 
     # Feedback
