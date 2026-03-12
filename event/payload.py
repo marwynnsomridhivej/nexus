@@ -19,7 +19,10 @@ __all__ = (
     "MatchFinalisedPayload",
 
     # Seasons
-    "SeasonEndPayload"
+    "SeasonEndPayload",
+
+    # Stats
+    "PlayerStatsResetPayload",
 )
 
 
@@ -330,4 +333,36 @@ class SeasonEndPayload(WrapperBase):
             "guild_id": guild_id,
             "season": season,
             "ranked_players": ranked_players,
+        })
+
+
+class PlayerStatsResetPayload(WrapperBase):
+    __slots__ = (
+        "__user_id",
+        "__guild_id",
+    )
+
+    def __init__(self, data: dict):
+        self.__user_id: int = data["user_id"]
+        self.__guild_id: int = data["guild_id"]
+
+    @property
+    def user_id(self) -> int:
+        return self.__user_id
+
+    @property
+    def guild_id(self) -> int:
+        return self.__guild_id
+
+    def serialise(self) -> dict:
+        return {
+            "user_id": self.__user_id,
+            "guild_id": self.__guild_id,
+        }
+
+    @classmethod
+    def create(cls, *, user_id: int, guild_id: int) -> "PlayerStatsResetPayload":
+        return cls({
+            "user_id": user_id,
+            "guild_id": guild_id,
         })

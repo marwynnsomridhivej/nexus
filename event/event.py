@@ -31,6 +31,12 @@ class Event(StrEnum):
     # Dispatched after a season has been stopped and rankings are finalised
     SEASON_STOP = "season_stop"
 
+    # Dispatched after a player's stats have been reset
+    PLAYER_STATS_RESET = "player_stats_reset"
+
+    # Dispatched after a player's stats have been deleted
+    PLAYER_STATS_DELETE = "player_stats_delete"
+
 
 class Reason(StrEnum):
     TEAM_VC = "Automatically moved into team voice channel."
