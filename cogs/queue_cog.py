@@ -9,7 +9,7 @@ from canned import Canned
 from event import *
 from exceptions import *
 from queuemanager import *
-from ui import QueueListView
+from ui import QueueListView, QueueFilledDMView
 
 
 class QueueCog(commands.GroupCog, name="queue"):
@@ -27,21 +27,16 @@ class QueueCog(commands.GroupCog, name="queue"):
         self.bot.logger.info("[QueueCog] Successfully loaded")
 
     async def _notify_queue_owner_full(self, payload: QueueFilledPayload) -> None:
-        content = "\n".join([
-            f"A queue you own is full. Details are as follows:",
-            f"> Server: {self.bot.get_guild(payload.guild_id)}",
-            f"> Name: {payload.name}",
-            "> Players:",
-            "\n".join([
-                f"> - <@{_id}>" for _id in payload.entry.players
-            ])
-        ])
         user = self.bot.get_user(payload.entry.owner_id)
         if user is None:
             return self.bot.logger.info(
                 f"Could not send queue full DM to user {payload.entry.owner_id} (not found)"
             )
-        await user.send(content)
+        await user.send(view=QueueFilledDMView(
+            guild=self.bot.get_guild(payload.guild_id),
+            name=payload.name,
+            entry=payload.entry,
+        ))
 
     @app_commands.command(name="create", description="Creates a new queue for a custom match")
     @app_commands.rename(queue_type="type")
