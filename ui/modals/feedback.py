@@ -20,9 +20,9 @@ class FeedbackModal(discord.ui.Modal):
         self.feedback_type = discord.ui.Label(
             text="Feedback Type",
             description="Please designate the type of feedback you are giving",
-            component=discord.ui.Select(
+            component=discord.ui.RadioGroup(
                 options=[
-                    discord.SelectOption(label=opt.title(), value=opt)
+                    discord.RadioGroupOption(label=opt.title(), value=opt)
                     for opt in FEEDBACK_TYPES
                 ]
             )
@@ -44,13 +44,13 @@ class FeedbackModal(discord.ui.Modal):
 
     async def on_submit(self, interaction: discord.Interaction):
         # Type hints
-        assert isinstance(self.feedback_type.component, discord.ui.Select)
+        assert isinstance(self.feedback_type.component, discord.ui.RadioGroup)
         assert isinstance(self.feedback_content.component,
                           discord.ui.TextInput)
 
         from ..views import FeedbackView
         feedback_view = FeedbackView(
-            feedback_type=FeedbackType(self.feedback_type.component.values[0]),
+            feedback_type=FeedbackType(self.feedback_type.component.value),
             content=self.feedback_content.component.value,
             interaction=interaction,
         )
