@@ -6,7 +6,6 @@ from datetime import datetime
 import discord
 from discord.ext import commands
 
-from canned import Canned
 from config import Config
 from dmmanager import DMManager
 from matchmanager import MatchManager
