@@ -1,16 +1,23 @@
 __all__ = (
+    # Feedback
     "FeedbackModal",
 
+    # R6 Draft
     "PreMatchModal",
-
-    "ConfirmationModal",
     "R6DraftModal",
     "R6MapBanModal",
     "R6MVPModal",
-    "R6ResultModal",
     "R6SideModal",
+    "R6ResultModal",
 
+    # General Confirmation
+    "ConfirmationModal",
+
+    # Seasons
     "SeasonStartModal",
+
+    # Stats
+    "PlayerStatsEditModal",
 )
 
 # Feedback
@@ -27,6 +34,8 @@ from .match.r6mvp import R6MVPModal
 from .match.r6result import R6ResultModal
 from .match.r6side import R6SideModal
 
-
 # Season modals
 from .season.season_start import SeasonStartModal
+
+# Stat Modals
+from .player.player_stats_edit import PlayerStatsEditModal
