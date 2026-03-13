@@ -15,6 +15,8 @@ from statsmanager import StatsManager
 
 
 class Bot(commands.Bot):
+    __version__ = "1.0.0-beta"
+
     def __init__(self, config: Config, **kwargs):
         super().__init__(
             command_prefix=commands.when_mentioned_or(config.command_prefix),
@@ -40,6 +42,9 @@ class Bot(commands.Bot):
         # Should we wipe DMs with everyone?
         self.dm_wipe = kwargs.get("dm_wipe")
 
+        # Is prod?
+        self.prod = kwargs.get("prod")
+
     async def setup_hook(self):
         # Initialise managers
         await self.dm_manager.load()
@@ -56,10 +61,14 @@ class Bot(commands.Bot):
                 raise e
 
         # Sync slash commands
-        guild = discord.Object(id=self.config.nexus_guild_id)
-        # self.tree.clear_commands(guild=guild)
-        self.tree.copy_global_to(guild=guild)
-        await self.tree.sync(guild=guild)
+        if not self.prod:
+            guild = discord.Object(id=self.config.nexus_guild_id)
+            self.tree.copy_global_to(guild=guild)
+            await self.tree.sync(guild=guild)
+        else:
+            await self.tree.sync()
+        
+        self.logger.info(f"[BOT] v{self.__version__} successfully loaded")
 
     async def on_ready(self):
         await self.wait_until_ready()
@@ -92,9 +101,10 @@ class Bot(commands.Bot):
 
 
 if __name__ == "__main__":
-    # Check if debug flag is set
+    # Set flags
     debug = len(sys.argv) > 1 and "debug" in sys.argv
     dm_wipe = len(sys.argv) > 1 and "wipe" in sys.argv
+    prod = len(sys.argv) > 1 and "prod" in sys.argv
 
     # Load bot config from disk
     config = Config()
@@ -125,5 +135,6 @@ if __name__ == "__main__":
         logger.addHandler(handler)
 
     # Run bot
-    bot = Bot(config, intents=discord.Intents.all(), dm_wipe=dm_wipe)
+    bot = Bot(config, intents=discord.Intents.all(),
+              dm_wipe=dm_wipe, prod=prod)
     bot.run(config.token, log_handler=None)
