@@ -19,12 +19,14 @@ class PlayerStatsDeleteDMView(discord.ui.LayoutView):
         items = []
 
         # Header
-        header = discord.ui.TextDisplay("## Alert - Stats Deleted")
+        header = discord.ui.TextDisplay("\n".join([
+            "## Alert - Stats Deleted",
+            f"An administrator for the server `{self.guild.name}` deleted your stats for the current active season.",
+        ]))
         items.append(header)
 
         # Body
         body = discord.ui.TextDisplay("\n".join([
-            f"An administrator for the server `{self.guild.name}` deleted your stats for the current active season.",
             "### How Does This Affect You?",
             "- You have been removed from the server leaderboard for the current active season",
             "- You must participate in at least one match in order to obtain a ranking for the current season",
@@ -40,11 +42,12 @@ class PlayerStatsDeleteDMView(discord.ui.LayoutView):
     def init_components(self) -> None:
         container = discord.ui.Container(
             discord.ui.Section(
-                *self.text_display,
+                self.text_display[0],
                 accessory=discord.ui.Thumbnail(
                     self.guild.icon.url if self.guild.icon is not None else R6URL.ICON
                 )
             ),
+            self.text_display[1],
             discord.ui.Separator(),
             discord.ui.TextDisplay(
                 "-# If you believe this reset was performed in error, please contact server administrators"

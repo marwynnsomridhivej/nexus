@@ -19,12 +19,14 @@ class PlayerStatsResetDMView(discord.ui.LayoutView):
         items = []
 
         # Header
-        header = discord.ui.TextDisplay("## Alert - Stats Reset")
+        header = discord.ui.TextDisplay("\n".join([
+            "## Alert - Stats Reset",
+            f"An administrator for the server `{self.guild.name}` reset your stats for the current active season.",
+        ]))
         items.append(header)
 
         # Body
         body = discord.ui.TextDisplay("\n".join([
-            f"An administrator for the server `{self.guild.name}` reset your stats for the current active season.",
             "### How Does This Affect You?",
             "- Your wins, losses, matches played, points, and peak points have been reset to `0`",
             "- Your placement on the server leaderboard for the current season now reflects this change",
@@ -40,11 +42,12 @@ class PlayerStatsResetDMView(discord.ui.LayoutView):
     def init_components(self) -> None:
         container = discord.ui.Container(
             discord.ui.Section(
-                *self.text_display,
+                self.text_display[0],
                 accessory=discord.ui.Thumbnail(
                     self.guild.icon.url if self.guild.icon is not None else R6URL.ICON
                 )
             ),
+            self.text_display[1],
             discord.ui.Separator(),
             discord.ui.TextDisplay(
                 "-# If you believe this reset was performed in error, please contact server administrators"
