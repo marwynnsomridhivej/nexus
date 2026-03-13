@@ -55,6 +55,8 @@ class QueueCog(commands.GroupCog, name="queue"):
             )
             msg = f"The queue \"{name}\" has been created for {queue_type}"
             ephemeral = False
+        except QueueLimitReached:
+            msg = Canned.ERR_QUEUE_LIMIT
         except QueueAlreadyExists:
             msg = Canned.ERR_QUEUE_EXISTS
         except ValueError:

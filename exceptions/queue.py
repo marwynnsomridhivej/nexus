@@ -12,6 +12,7 @@ __all__ = (
 
     "QueueAlreadyExists",
     "QueueDoesNotExist",
+    "QueueLimitReached",
     "QueueIsFull",
     "QueueIsLocked",
     "QueueLockStateError",
@@ -68,6 +69,14 @@ class QueueDoesNotExist(Exception):
 
     def __str__(self):
         return f"QueueDoesNotExist[queue_name={self.queue_name}]"
+
+
+class QueueLimitReached(Exception):
+    def __init__(self, guild_id: int):
+        self.guild_id = guild_id
+
+    def __str__(self):
+        return f"QueueLimitReached[guild_id={self.guild_id}]"
 
 
 class QueueIsFull(Exception):

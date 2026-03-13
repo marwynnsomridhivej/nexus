@@ -23,6 +23,7 @@ class Canned(StrEnum):
     ERR_QUEUE_EXISTS = "ERROR - A queue already exists with the specified name"
     ERR_QUEUE_NO_EXISTS = "ERROR - No queue exists with the specified name"
     ERR_QUEUE_NAME_LEN = "ERROR - The specified name must be no longer than 100 characters"
+    ERR_QUEUE_LIMIT = "ERROR - This server has reached the 20 simultaneous queues limit and cannot create more queues at this time"
     ERR_QUEUE_OWNER = "ERROR - Unable to modify the specified queue, as you are not its owner"
     ERR_QUEUE_ALREADY_IN = "ERROR - You are already in the specified queue"
     ERR_QUEUE_NOT_IN = "ERROR - You are not in the specified queue"
@@ -55,6 +56,7 @@ class Canned(StrEnum):
     ERR_STATS_NO_PLAYERS = "ERROR - No players are currently ranked in this server for this season"
     ERR_STATS_PLAYER_NO_RANKED = "ERROR - The specified player is not currently ranked for this season"
     ERR_STATS_INVALID_SEASON_NAME = "ERROR - Could not find a season with the specified name"
+    ERR_STATS_PLAYER_EDIT = "ERROR - All values must be integers"
 
     # Feedback
     FEEDBACK_CONF = "Thank you. Your feedback has been sent to the developers"

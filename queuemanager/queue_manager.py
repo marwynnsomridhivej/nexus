@@ -31,6 +31,11 @@ class QueueManager(ManagerBase):
             raise ValueError(name)
         
         wrapper = await self._get_or_create_wrapper()
+        
+        # Do not allow more than 20 simultaneous open queues at a time
+        if len(wrapper.get_or_create(guild_id).data.values()) >= 20:
+            raise QueueLimitReached
+        
         queue_entry_data = {
             "owner_id":     owner_id,
             "created_timestamp": int(datetime.now().timestamp()),
