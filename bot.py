@@ -21,7 +21,7 @@ class Bot(commands.Bot):
         super().__init__(
             command_prefix=commands.when_mentioned_or(config.command_prefix),
             activity=discord.Activity(
-                name=Canned.ACTIVITY_HELP,
+                name=f"v{self.__version__}",
                 type=discord.ActivityType.playing,
             ),
             **kwargs

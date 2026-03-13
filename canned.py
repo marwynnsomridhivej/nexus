@@ -15,7 +15,6 @@ class Canned(StrEnum):
     """
 
     # General
-    ACTIVITY_HELP = "/help | F2 vertical grip!"
     ERR_PERMS = "ERROR - You do not have permission to run this command"
     ERR_BOT_USER = "ERROR - This operation cannot be done on bot users"
 
