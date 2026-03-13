@@ -23,6 +23,7 @@ __all__ = (
 
     # Stats
     "PlayerStatsResetPayload",
+    "PlayerStatsEditPayload",
 )
 
 
@@ -365,4 +366,52 @@ class PlayerStatsResetPayload(WrapperBase):
         return cls({
             "user_id": user_id,
             "guild_id": guild_id,
+        })
+
+
+class PlayerStatsEditPayload(WrapperBase):
+    __slots__ = (
+        "__user_id",
+        "__guild_id",
+        "__previous",
+        "__new",
+    )
+
+    def __init__(self, data: dict):
+        self.__user_id: int = data["user_id"]
+        self.__guild_id: int = data["guild_id"]
+        self.__previous: StatsPlayer = data["previous"]
+        self.__new: StatsPlayer = data["new"]
+
+    @property
+    def user_id(self) -> int:
+        return self.__user_id
+
+    @property
+    def guild_id(self) -> int:
+        return self.__guild_id
+
+    @property
+    def previous(self) -> StatsPlayer:
+        return self.__previous
+
+    @property
+    def new(self) -> StatsPlayer:
+        return self.__new
+
+    def serialise(self) -> dict:
+        return {
+            "user_id": self.__user_id,
+            "guild_id": self.__guild_id,
+            "previous": self.__previous.serialise(),
+            "new": self.__new.serialise(),
+        }
+
+    @classmethod
+    def create(cls, *,  user_id: int, guild_id: int, previous: StatsPlayer, new: StatsPlayer) -> "PlayerStatsEditPayload":
+        return cls({
+            "user_id": user_id,
+            "guild_id": guild_id,
+            "previous": previous,
+            "new": new,
         })

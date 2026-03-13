@@ -37,6 +37,9 @@ class Event(StrEnum):
     # Dispatched after a player's stats have been deleted
     PLAYER_STATS_DELETE = "player_stats_delete"
 
+    # Dispatched after a player's stats have been edited
+    PLAYER_STATS_EDITED = "player_stats_edited"
+
 
 class Reason(StrEnum):
     TEAM_VC = "Automatically moved into team voice channel."

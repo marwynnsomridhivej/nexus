@@ -200,6 +200,27 @@ class StatsSeason(WrapperBase):
             raise PlayerDoesNotExist(user_id)
         del self.players[user_id]
 
+    def edit_player(self, user_id: int, new_stats: dict) -> "StatsPlayer":
+        """Edits a player's stats entry
+
+        Args:
+            user_id (int): The ID of the user
+            new_stats (dict): A payload containing user stats
+
+        Raises:
+            PlayerDoesNotExist: No StatsPlayer exists for the specified user
+        """
+        if self.players.get(user_id) is None:
+            raise PlayerDoesNotExist
+
+        player = self.players[user_id]
+        player.wins = new_stats["wins"]
+        player.losses = new_stats["losses"]
+        player.points = new_stats["points"]
+        player.max_points = new_stats["max_points"]
+        player.times_mvp = new_stats["times_mvp"]
+        return player
+
     def award_player(self, user_id: int, mvp_id: int, win: bool, is_1v1: bool) -> None:
         """Awards the specified player points for winning or losing a match
 

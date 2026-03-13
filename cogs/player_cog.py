@@ -1,3 +1,4 @@
+import copy
 from typing import Coroutine, Dict
 
 import discord
@@ -5,9 +6,9 @@ from discord import app_commands
 from discord.ext import commands
 
 from canned import Canned
-from event import Event, PlayerStatsResetPayload
+from event import Event, PlayerStatsEditPayload, PlayerStatsResetPayload
 from ui import (ConfirmationModal, PlayerStatsDeleteDMView,
-                PlayerStatsResetDMView)
+                PlayerStatsEditModal, PlayerStatsResetDMView, PlayerStatsEditDMView)
 
 
 class PlayerCog(commands.GroupCog, name="player"):
@@ -19,6 +20,7 @@ class PlayerCog(commands.GroupCog, name="player"):
         _handlers: Dict[Coroutine, Event] = {
             self.send_player_stats_reset_dm: Event.PLAYER_STATS_RESET,
             self.send_player_stats_delete_dm: Event.PLAYER_STATS_DELETE,
+            self.send_player_stats_edit_dm: Event.PLAYER_STATS_EDITED,
         }
         for coro, event in _handlers.items():
             self.bot.add_listener(coro, f"on_{event}")
@@ -40,6 +42,14 @@ class PlayerCog(commands.GroupCog, name="player"):
             return self.bot.logger.info(f"Unable to send player stats DELETE DM for user_id={payload.user_id} and guild_id={payload.guild_id}")
 
         await user.send(view=PlayerStatsDeleteDMView(user=user, guild=guild))
+
+    async def send_player_stats_edit_dm(self, payload: PlayerStatsEditPayload):
+        user = self.bot.get_user(payload.user_id)
+        guild = self.bot.get_guild(payload.guild_id)
+        if user is None or guild is None:
+            return self.bot.logger.info(f"Unable to send player stats EDIT DM for user_id={payload.user_id} and guild_id={payload.guild_id}")
+
+        await user.send(view=PlayerStatsEditDMView(user=user, guild=guild, previous=payload.previous, new=payload.new))
 
     async def _perform_checks(self, interaction: discord.Interaction, member: discord.Member) -> bool:
         # Must have manage guild permission to execute
@@ -118,6 +128,43 @@ class PlayerCog(commands.GroupCog, name="player"):
         self.bot.dispatch(Event.PLAYER_STATS_DELETE, PlayerStatsResetPayload.create(
             user_id=member.id,
             guild_id=interaction.guild_id,
+        ))
+
+    @app_commands.command(name="edit", description="Edits the stats for a player for the current active season")
+    @app_commands.describe(member="The member for which stats are to be edited")
+    async def _edit_command(self, interaction: discord.Interaction, member: discord.Member):
+        if not await self._perform_checks(interaction, member):
+            return
+
+        # Check to see if player is even ranked
+        ranked_players = await self.bot.stats_manager.get_guild_players(interaction.guild_id)
+        player = discord.utils.find(
+            lambda p: p.id == member.id, ranked_players)
+        if player is None:
+            return await interaction.response.send_message(Canned.ERR_STATS_PLAYER_NO_RANKED, ephemeral=True)
+
+        # Send PlayerStatsEdit modal and wait until interaction is completed
+        edit_modal = PlayerStatsEditModal(bot=self.bot, player=player)
+        await interaction.response.send_modal(edit_modal)
+        await edit_modal.wait()
+
+        # Cancel if the user canceled the modal
+        if not edit_modal.apply_edits:
+            return await interaction.followup.send(f"Player {member.mention}'s stats were NOT edited", ephemeral=True)
+
+        # Edit stats and send confirmation
+        previous = copy.deepcopy(player)
+        await interaction.followup.send(f"Player {member.mention}'s stats have been successfully edited", ephemeral=True)
+        new = await self.bot.stats_manager.edit_player(
+            guild_id=interaction.guild_id,
+            user_id=member.id,
+            new_stats=edit_modal.new_stats,
+        )
+        self.bot.dispatch(Event.PLAYER_STATS_EDITED, PlayerStatsEditPayload.create(
+            user_id=member.id,
+            guild_id=interaction.guild_id,
+            previous=previous,
+            new=new,
         ))
 
 
