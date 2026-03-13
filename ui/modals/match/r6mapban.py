@@ -22,9 +22,9 @@ class R6MapBanModal(discord.ui.Modal):
         self.map_ban = discord.ui.Label(
             text="Ban Map",
             description="Select a map to ban",
-            component=discord.ui.Select(
+            component=discord.ui.RadioGroup(
                 options=[
-                    discord.SelectOption(
+                    discord.RadioGroupOption(
                         label=r6map.replace("_", " ").title(),
                         value=r6map.value
                     ) for r6map in self._r6view.map_pool if r6map not in self._r6view._match.banned_maps
@@ -35,10 +35,10 @@ class R6MapBanModal(discord.ui.Modal):
         return [self.map_ban]
 
     async def on_submit(self, interaction: discord.Interaction):
-        assert isinstance(self.map_ban.component, discord.ui.Select)
+        assert isinstance(self.map_ban.component, discord.ui.RadioGroup)
 
         captain_id = interaction.user.id
-        map_banned = R6Map(self.map_ban.component.values[0])
+        map_banned = R6Map(self.map_ban.component.value)
         map_string = map_banned.replace("_", " ").title()
 
         # Use MatchManager.ban_map to write to disk

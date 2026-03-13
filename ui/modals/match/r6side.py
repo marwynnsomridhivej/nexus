@@ -21,9 +21,9 @@ class R6SideModal(discord.ui.Modal):
         self.side_select = discord.ui.Label(
             text="Starting Side Selection",
             description="Select whether your team would like to attack or defend first",
-            component=discord.ui.Select(
+            component=discord.ui.RadioGroup(
                 options=[
-                    discord.SelectOption(
+                    discord.RadioGroupOption(
                         label=side.title(),
                         value=side.value
                     ) for side in [R6Side.ATTACKER, R6Side.DEFENDER]
@@ -34,10 +34,10 @@ class R6SideModal(discord.ui.Modal):
         return [self.side_select]
 
     async def on_submit(self, interaction: discord.Interaction):
-        assert isinstance(self.side_select.component, discord.ui.Select)
+        assert isinstance(self.side_select.component, discord.ui.RadioGroup)
 
         captain_id = interaction.user.id
-        choice = self.side_select.component.values[0]
+        choice = self.side_select.component.value
 
         # Set starting side according to selection
         await self._r6view._bot.match_manager.select_starting_side(

@@ -122,13 +122,13 @@ class MatchCog(commands.GroupCog, name="match"):
         assert isinstance(prematch_modal.tc.component,
                           discord.ui.ChannelSelect)
         assert isinstance(prematch_modal.captain_select.component,
-                          discord.ui.Select)
+                          discord.ui.RadioGroup)
         assert isinstance(prematch_modal.manual_select.component,
                           discord.ui.UserSelect)
 
         vc = prematch_modal.vc.component.values[0]
         tc = prematch_modal.tc.component.values[0]
-        mode = prematch_modal.captain_select.component.values[0]
+        mode = prematch_modal.captain_select.component.value
 
         # Craft payload to be dispatched on event
         if mode == CaptSelect.MANUAL:

@@ -21,13 +21,13 @@ class ConfirmationModal(discord.ui.Modal):
             text=self.custom_text or "Are you sure?",
             description=self.custom_description or "This operation cannot be undone. " +
             "Only proceed if you know what you are doing.",
-            component=discord.ui.Select(
+            component=discord.ui.RadioGroup(
                 options=[
-                    discord.SelectOption(
+                    discord.RadioGroupOption(
                         label=self.custom_yes or "I understand and wish to proceed",
                         value="1"
                     ),
-                    discord.SelectOption(
+                    discord.RadioGroupOption(
                         label=self.custom_no or "No, take me back",
                         value="0"
                     ),
@@ -37,7 +37,7 @@ class ConfirmationModal(discord.ui.Modal):
         self.add_item(self.confirm)
 
     async def on_submit(self, interaction: discord.Interaction):
-        assert isinstance(self.confirm.component, discord.ui.Select)
+        assert isinstance(self.confirm.component, discord.ui.RadioGroup)
 
-        self.proceed = int(self.confirm.component.values[0]) == 1
+        self.proceed = int(self.confirm.component.value) == 1
         await interaction.response.defer()

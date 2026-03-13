@@ -20,9 +20,9 @@ class R6DraftModal(discord.ui.Modal):
         self.draft = discord.ui.Label(
             text="Draft Player",
             description="Select a player to draft",
-            component=discord.ui.Select(
+            component=discord.ui.RadioGroup(
                 options=[
-                    discord.SelectOption(
+                    discord.RadioGroupOption(
                         label=name,
                         value=_id
                     ) for name, _id in self._r6view.draftable_players
@@ -33,10 +33,10 @@ class R6DraftModal(discord.ui.Modal):
         return [self.draft]
 
     async def on_submit(self, interaction: discord.Interaction):
-        assert isinstance(self.draft.component, discord.ui.Select)
+        assert isinstance(self.draft.component, discord.ui.RadioGroup)
 
         captain_id = interaction.user.id
-        drafted_id = int(self.draft.component.values[0])
+        drafted_id = int(self.draft.component.value)
 
         # Use MatchManager.draft to write to disk
         await self._r6view._bot.match_manager.draft_player(

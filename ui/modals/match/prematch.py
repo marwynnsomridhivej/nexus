@@ -51,13 +51,13 @@ class PreMatchModal(discord.ui.Modal):
         self.captain_select = discord.ui.Label(
             text="Captain Selection",
             description="How should captain selection occur?",
-            component=discord.ui.Select(
+            component=discord.ui.RadioGroup(
                 options=[
-                    discord.SelectOption(
+                    discord.RadioGroupOption(
                         label=CaptSelect.RATING.title(), value=CaptSelect.RATING),
-                    discord.SelectOption(
+                    discord.RadioGroupOption(
                         label=CaptSelect.RANDOM.title(), value=CaptSelect.RANDOM),
-                    discord.SelectOption(
+                    discord.RadioGroupOption(
                         label=CaptSelect.MANUAL.title(), value=CaptSelect.MANUAL),
                 ],
                 required=True,
@@ -95,8 +95,8 @@ class PreMatchModal(discord.ui.Modal):
         await self._ensure_perms(interaction)
 
         # Ensure captain select values are OK
-        assert isinstance(self.captain_select.component, discord.ui.Select)
-        if self.captain_select.component.values[0] == CaptSelect.MANUAL:
+        assert isinstance(self.captain_select.component, discord.ui.RadioGroup)
+        if self.captain_select.component.value == CaptSelect.MANUAL:
             assert isinstance(self.queue.component, discord.ui.Select)
             assert isinstance(self.manual_select.component,
                               discord.ui.UserSelect)

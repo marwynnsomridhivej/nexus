@@ -28,9 +28,9 @@ class R6MVPModal(discord.ui.Modal):
         self.mvp_select = discord.ui.Label(
             text="Designate Team MVP",
             description="Select the member on your team that contributed the most to the team",
-            component=discord.ui.Select(
+            component=discord.ui.RadioGroup(
                 options=[
-                    discord.SelectOption(
+                    discord.RadioGroupOption(
                         label=p.display_name,
                         value=str(p.id)
                     ) for p in players
@@ -41,10 +41,10 @@ class R6MVPModal(discord.ui.Modal):
         return [self.mvp_select]
 
     async def on_submit(self, interaction: discord.Interaction):
-        assert isinstance(self.mvp_select.component, discord.ui.Select)
+        assert isinstance(self.mvp_select.component, discord.ui.RadioGroup)
 
         captain_id = interaction.user.id
-        mvp_id = int(self.mvp_select.component.values[0])
+        mvp_id = int(self.mvp_select.component.value)
 
         try:
             await self._r6view._bot.match_manager.designate_mvp(
