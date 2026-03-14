@@ -21,7 +21,7 @@ class FeedbackView(discord.ui.LayoutView):
                     "### User Information",
                     f"- User: {self.interaction.user.mention} | `{self.interaction.user.id}`",
                     f"- Guild: `{self.interaction.guild.name}` | `{self.interaction.guild_id}`",
-                    f"- Sent at: <t:{int(self.interaction.created_at.timestamp())}:f",
+                    f"- Sent at: <t:{int(self.interaction.created_at.timestamp())}:f>",
                 ]),
                 ),
                 accessory=discord.ui.Thumbnail(
