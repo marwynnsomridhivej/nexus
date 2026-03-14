@@ -10,6 +10,7 @@ from ui import (ConfirmationModal, SeasonEndDMView, SeasonsListView,
                 SeasonStartModal)
 
 
+@app_commands.guild_only()
 class SeasonCog(commands.GroupCog, name="season"):
     def __init__(self, bot):
         from bot import Bot

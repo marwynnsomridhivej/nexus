@@ -12,6 +12,7 @@ from queuemanager import *
 from ui import QueueListView, QueueFilledDMView
 
 
+@app_commands.guild_only()
 class QueueCog(commands.GroupCog, name="queue"):
     def __init__(self, bot):
         from bot import Bot

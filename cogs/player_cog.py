@@ -11,6 +11,7 @@ from ui import (ConfirmationModal, PlayerStatsDeleteDMView,
                 PlayerStatsEditModal, PlayerStatsResetDMView, PlayerStatsEditDMView)
 
 
+@app_commands.guild_only()
 class PlayerCog(commands.GroupCog, name="player"):
     def __init__(self, bot):
         from bot import Bot

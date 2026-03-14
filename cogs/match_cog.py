@@ -12,6 +12,7 @@ from queuemanager import CaptSelect
 from ui import *
 
 
+@app_commands.guild_only()
 class MatchCog(commands.GroupCog, name="match"):
     def __init__(self, bot):
         from bot import Bot
