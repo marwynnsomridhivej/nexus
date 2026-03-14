@@ -67,6 +67,6 @@ Access leaderboards for current or previous seasons.
 
 Give feedback directly to the developers.
 
-| Command     | Description                            |
-|-------------|----------------------------------------|
-| `/feedback` | Submit feedback via the feedback modal |
+| Command     | Description                            | Notes                                               |
+|-------------|----------------------------------------|-----------------------------------------------------|
+| `/feedback` | Submit feedback via the feedback modal | There is a per-user cooldown of `300`s between uses |
