@@ -1,5 +1,6 @@
 import logging
 import logging.handlers
+import subprocess
 import sys
 from datetime import datetime
 
@@ -15,12 +16,14 @@ from statsmanager import StatsManager
 
 class Bot(commands.Bot):
     __version__ = "1.0.0-beta"
+    __commit__ = subprocess.check_output(
+        ["git", "rev-parse", "--short", "HEAD"]).decode("ascii").strip()
 
     def __init__(self, config: Config, **kwargs):
         super().__init__(
             command_prefix=commands.when_mentioned_or(config.command_prefix),
             activity=discord.Activity(
-                name=f"v{self.__version__}",
+                name=f"v{self.__version__} | {self.__commit__}",
                 type=discord.ActivityType.playing,
             ),
             **kwargs
@@ -66,8 +69,9 @@ class Bot(commands.Bot):
             await self.tree.sync(guild=guild)
         else:
             await self.tree.sync()
-        
-        self.logger.info(f"[BOT] v{self.__version__} successfully loaded")
+
+        self.logger.info(
+            f"[BOT] v{self.__version__} ({self.__commit__}) successfully loaded")
 
     async def on_ready(self):
         await self.wait_until_ready()
