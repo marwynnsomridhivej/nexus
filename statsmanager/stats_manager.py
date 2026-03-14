@@ -80,7 +80,7 @@ class StatsManager(ManagerBase):
             ValueError: No active season exists for the specified guild
         """
         wrapper = await self._get_or_create_wrapper()
-        exists = wrapper.get(guild_id, throw=True).has_active_season()
+        exists = wrapper.get_or_create(guild_id).has_active_season()
         err = ValueError(f"No active season for guild ID {guild_id}")
         if not exists:
             raise err
