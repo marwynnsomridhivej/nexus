@@ -5,6 +5,7 @@ import discord
 from discord.ext import commands
 
 from event import *
+from exceptions import *
 from matchmanager import MatchTeam
 
 
@@ -15,6 +16,7 @@ class MonitoringCog(commands.Cog):
 
     async def cog_load(self):
         _handlers: Dict[Coroutine, Event] = {
+            # Custom Events
             self.reset_button_vc_move: Event.RESET_BUTTON_PRESSED,
             self.queue_match_cleanup: Event.MATCH_FINALISED,
             self.delete_vcs: Event.MATCH_FINALISED,
@@ -22,11 +24,18 @@ class MonitoringCog(commands.Cog):
             self.explicit_delete_dms: Event.PREMATCH_DM_DELETE,
             self.increment_match_count: Event.MATCH_FINALISED,
             self.thread_cleanup: Event.THREAD_CLEANUP,
+
+            # DPY Events
+            self._on_raw_member_remove: "raw_member_remove",
         }
         for coro, event in _handlers.items():
             self.bot.add_listener(coro, f"on_{event}")
 
         self.bot.logger.info("[MonitoringCog] Successfully loaded")
+
+    # =============================================
+    # ================CUSTOM EVENTS================
+    # =============================================
 
     async def _move_team_to_lobby_vc(self, guild_id: int, lobby_vc_id: int, team: MatchTeam, reason: Reason) -> None:
         lobby_vc_channel = self.bot.get_channel(lobby_vc_id)
@@ -132,6 +141,48 @@ class MonitoringCog(commands.Cog):
             archived=True,
             locked=True,
         )
+
+    # =============================================
+    # =================DPY EVENTS==================
+    # =============================================
+
+    async def _on_raw_member_remove(self, payload: discord.RawMemberRemoveEvent):
+        guild = self.bot.get_guild(payload.guild_id)
+        if not guild:
+            return
+
+        was_banned = False
+        try:
+            was_banned = isinstance(await guild.fetch_ban(payload.user), discord.BanEntry)
+        except Exception:
+            pass
+
+        # Leave all queues the user is in, so long as it is not currently in progress (in an active match)
+        try:
+            queues = await self.bot.queue_manager.list_queues(payload.guild_id, member=payload.user)
+            for name in queues.keys():
+                try:
+                    await self.bot.queue_manager.leave_user_from_queue(payload.guild_id, payload.user.id, name, force=True)
+                except QueueDoesNotExist:
+                    pass
+                except QueueProgressStateError:
+                    pass
+                except QueueIsLocked:
+                    pass
+                except NotInQueue:
+                    pass
+        except NoListResults:
+            pass
+
+        # If the user was banned, delete their stat entry for the current season (if it exists)
+        if was_banned:
+            try:
+                await self.bot.stats_manager.ensure_season(guild_id=payload.guild_id)
+                await self.bot.stats_manager.delete_player(guild_id=payload.guild_id, user_id=payload.user.id)
+            except ValueError:
+                pass
+            except PlayerDoesNotExist:
+                pass
 
 
 async def setup(bot):
