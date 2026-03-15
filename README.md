@@ -70,3 +70,16 @@ Give feedback directly to the developers.
 | Command     | Description                            | Notes                                               |
 |-------------|----------------------------------------|-----------------------------------------------------|
 | `/feedback` | Submit feedback via the feedback modal | There is a per-user cooldown of `300`s between uses |
+
+## Changelog
+
+### 1.0.1-beta
+
+- When a player leaves a server, remove them from any queues they are currently in
+  - This includes locked queues, so long as the queue is not in progress
+- If the player was banned, delete their stat entry from the current season, if one exists
+- Prevent a single failure to send a prematch DM to a player from causing all remaining players to not get the prematch DM
+
+### 1.0.0-beta
+
+- Initial release
