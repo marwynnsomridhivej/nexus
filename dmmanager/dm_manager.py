@@ -21,7 +21,7 @@ class DMManager(ManagerBase):
     async def purge_all(self) -> None:
         wrapper = await self._get_or_create_wrapper()
         for identifier, message_id in wrapper.data.items():
-            guild_id, user_id = [int(_id) for _id in identifier.split("_")]
+            user_id = [int(_id) for _id in identifier.split("_")][1]
             user = self.bot.get_user(user_id)
             if user is None:
                 continue
