@@ -215,18 +215,24 @@ class QueueEntry(WrapperBase):
 
         self.players.append(user_id)
 
-    def remove_player(self, user_id: int) -> None:
+    def remove_player(self, user_id: int, force: bool) -> None:
         """Removes a user ID from the player list
 
         Args:
             user_id (int): The ID of the user to remove
+            force (bool): Whether or not to force removal so long as the queue is not in progress
 
         Raises:
+            QueueProgressStateError: There is currently an active match with this queue and cannot be modified
             QueueIsLocked: The queue is locked and cannot be modified
             NotInQueue: The user is not in this queue
         """
         if self.locked:
-            raise QueueIsLocked
+            if force:
+                if self.in_progress:
+                    raise QueueProgressStateError
+            else:
+                raise QueueIsLocked
 
         if user_id not in self.players:
             raise NotInQueue(user_id)

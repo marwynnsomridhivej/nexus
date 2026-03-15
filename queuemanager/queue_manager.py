@@ -60,11 +60,11 @@ class QueueManager(ManagerBase):
         await self.write(wrapper)
         return q
 
-    async def leave_user_from_queue(self, guild_id: int, user_id: int, name: str) -> None:
+    async def leave_user_from_queue(self, guild_id: int, user_id: int, name: str, force: bool = False) -> None:
         wrapper = await self._get_or_create_wrapper()
         wrapper.get_or_create(guild_id)\
             .get(name.lower(), throw=True)\
-            .remove_player(user_id)
+            .remove_player(user_id, force)
         await self.write(wrapper)
 
     async def set_queue_lock_state(self, guild_id: int, user_id: int, name: str, state: bool) -> None:
