@@ -33,11 +33,16 @@ class MatchCog(commands.GroupCog, name="match"):
             user = self.bot.get_user(user_id)
             if user is None:
                 continue
-            message = await user.send(view=MatchStartDMView(
-                guild=self.bot.get_guild(payload.guild_id),
-                payload=payload,
-            ))
-            await self.bot.dm_manager.create(payload.guild_id, user_id, message.id)
+            try:
+                message = await user.send(view=MatchStartDMView(
+                    guild=self.bot.get_guild(payload.guild_id),
+                    payload=payload,
+                ))
+                await self.bot.dm_manager.create(payload.guild_id, user_id, message.id)
+            except discord.Forbidden:
+                continue
+            except discord.HTTPException:
+                continue
 
     async def _init_match_data(self, payload: PrematchPayload) -> None:
         await self.bot.match_manager.create_match(payload=payload)
