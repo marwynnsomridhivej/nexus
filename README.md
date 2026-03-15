@@ -75,6 +75,8 @@ Give feedback directly to the developers.
 
 ### 1.0.1-beta
 
+#### Added
+
 - When a player leaves a server, remove them from any queues they are currently in
   - This includes locked queues, so long as the queue is not in progress
 - If the player was banned, delete their stat entry from the current season, if one exists
