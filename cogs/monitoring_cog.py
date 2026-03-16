@@ -4,6 +4,7 @@ from typing import Coroutine, Dict, List
 import discord
 from discord.ext import commands
 
+from canned import Canned
 from event import *
 from exceptions import *
 from matchmanager import MatchTeam
@@ -140,6 +141,7 @@ class MonitoringCog(commands.Cog):
         await thread_channel.edit(
             archived=True,
             locked=True,
+            reason=Canned.R6DRAFT_THREAD_CLEANUP,
         )
 
     # =============================================

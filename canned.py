@@ -81,6 +81,7 @@ class Canned(StrEnum):
     R6DRAFT_MATCH_CANCEL = "This match has been canceled by the queue owner. Your rankings remain unchanged"
     R6DRAFT_RESET_DEFAULT = "Player draft, map bans, and starting side selection have been reset"
     R6DRAFT_DISCLAIMER = "-# *Only team captains and the queue owner can interact with the buttons below*"
+    R6DRAFT_THREAD_CLEANUP = "Match contained within thread was finalised or canceled"
 
     # R6 Draft - General Errors
     ERR_R6DRAFT_GEN_DRAFT = "ERROR - An error has occurred. Unable to draft player"
