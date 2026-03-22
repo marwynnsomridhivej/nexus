@@ -7,8 +7,6 @@ __all__ = (
 
     "R6_RANKED",
     "R6_QUICKMATCH",
-    "R6_TDM",
-    "R6_DUAL_FRONT",
 )
 
 
@@ -20,7 +18,7 @@ class R6Map(StrEnum):
     KAFE: str       = "kafe_dostoyevsky"
     CHALET: str     = "chalet"
     CLUBHOUSE: str  = "clubhouse"
-    ALPHA: str      = "stadium_alpha"
+    STADIUM: str    = "stadium_2020"
     BRAVO: str      = "stadium_bravo"
     LAIR: str       = "lair"
     NIGHTHAVEN: str = "nighthaven_labs"
@@ -50,59 +48,50 @@ class R6Side(StrEnum):
 
 
 R6_RANKED: List[R6Map] = sorted([
-    R6Map.BORDER,
-    R6Map.BANK,
-    R6Map.KAFE,
-    R6Map.CHALET,
-    R6Map.CLUBHOUSE,
-    R6Map.LAIR,
-    R6Map.NIGHTHAVEN,
-    R6Map.COASTLINE,
-    R6Map.CONSULATE,
-    R6Map.FORTRESS,
-    R6Map.KANAL,
-    R6Map.OREGON,
-    R6Map.OUTBACK,
-    R6Map.SKYSCRAPER,
-    R6Map.THEMEPARK,
-    R6Map.VILLA,
-])
-
-R6_QUICKMATCH: List[R6Map] = sorted(R6_RANKED + [
-    R6Map.ALPHA,
-    R6Map.BRAVO,
     R6Map.EMERALD,
-    R6Map.FAVELA,
-    R6Map.HOUSE,
-    R6Map.PLANE,
-    R6Map.TOWER,
-    R6Map.YACHT,
-])
-
-R6_TDM: List[R6Map] = sorted([
-    R6Map.BORDER,
+    R6Map.OREGON,
     R6Map.CLUBHOUSE,
-    R6Map.ALPHA,
-    R6Map.LAIR,
-    R6Map.NIGHTHAVEN,
-    R6Map.CQ,
     R6Map.CONSULATE,
-    R6Map.SKYSCRAPER,
-    R6Map.THEMEPARK,
+    R6Map.BANK,
+    R6Map.CHALET,
+    R6Map.KAFE,
+    R6Map.BORDER,
+    R6Map.COASTLINE,
     R6Map.VILLA,
+    R6Map.FORTRESS,
+    R6Map.NIGHTHAVEN,
+    R6Map.LAIR,
 ])
 
-R6_DUAL_FRONT: List[R6Map] = sorted([
-    R6Map.DISTRICT,
-])
-
-# Manual selected map pool as agreed upon by NEXUS overwatch
-R6_NEXUS: List[R6Map] = sorted([
-    ...
+R6_QUICKMATCH: List[R6Map] = sorted([
+    R6Map.HOUSE,
+    R6Map.OREGON,
+    R6Map.CLUBHOUSE,
+    R6Map.PLANE,
+    R6Map.CONSULATE,
+    R6Map.BANK,
+    R6Map.KANAL,
+    R6Map.CHALET,
+    R6Map.KAFE,
+    R6Map.YACHT,
+    R6Map.BORDER,
+    R6Map.FAVELA,
+    R6Map.SKYSCRAPER,
+    R6Map.COASTLINE,
+    R6Map.THEMEPARK,
+    R6Map.TOWER,
+    R6Map.VILLA,
+    R6Map.FORTRESS,
+    R6Map.OUTBACK,
+    R6Map.EMERALD,
+    R6Map.BRAVO,
+    R6Map.NIGHTHAVEN,
+    R6Map.LAIR,
+    R6Map.STADIUM,
 ])
 
 
 # Sanity checks
-for category in [R6_RANKED, R6_QUICKMATCH, R6_TDM, R6_DUAL_FRONT]:
+for category in [R6_RANKED, R6_QUICKMATCH]:
     for _map in category:
         assert category.count(_map) == 1
