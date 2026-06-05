@@ -39,7 +39,7 @@ class StatsCog(commands.Cog):
 
         # Ensure an active season exists if not named
         try:
-            if name is not None:
+            if name is None:
                 await self.bot.stats_manager.ensure_season(guild_id=guild_id)
         except ValueError:
             return await interaction.response.send_message(Canned.ERR_SEASON_NO_EXISTS, ephemeral=True)
