@@ -1,10 +1,10 @@
-from typing import List, Tuple
+from typing import Dict, List, Tuple
 
 import discord
 
 from base import WrapperBase
 from matchmanager import MatchEntry, MatchTeam
-from queuemanager import QueueEntry
+from queuemanager import QueueEntry, QueueType
 from statsmanager import StatsPlayer, StatsSeason
 
 __all__ = (
@@ -178,14 +178,14 @@ class VCResetPayload(WrapperBase):
         "__guild_id",
         "__lobby_vc_id",
         "__teams",
-        "__is_1v1",
+        "__queue_type",
     )
 
     def __init__(self, data: dict):
         self.__guild_id: int = data["guild_id"]
         self.__lobby_vc_id: int = data["lobby_vc_id"]
         self.__teams: List[MatchTeam] = data["teams"]
-        self.__is_1v1: bool = data["is_1v1"]
+        self.__queue_type: QueueType = data["queue_type"]
 
     @property
     def guild_id(self) -> int:
@@ -200,23 +200,24 @@ class VCResetPayload(WrapperBase):
         return self.__teams
 
     @property
-    def is_1v1(self) -> bool:
-        return self.__is_1v1
+    def queue_type(self) -> QueueType:
+        return self.__queue_type
 
     def serialise(self) -> dict:
         return {
             "guild_id": self.__guild_id,
             "lobby_vc_id": self.__lobby_vc_id,
             "teams": self.__teams,
+            "queue_type": self.__queue_type,
         }
 
     @classmethod
-    def create(cls, guild_id: int, lobby_vc_id: int, teams: List[MatchTeam], is_1v1: bool) -> "VCResetPayload":
+    def create(cls, guild_id: int, lobby_vc_id: int, teams: List[MatchTeam], queue_type: QueueType) -> "VCResetPayload":
         return cls({
             "guild_id": guild_id,
             "lobby_vc_id": lobby_vc_id,
             "teams": teams,
-            "is_1v1": is_1v1,
+            "queue_type": queue_type,
         })
 
 
@@ -224,21 +225,21 @@ class MatchFinalisedPayload(WrapperBase):
     __slots__ = (
         "__guild_id",
         "__name",
+        "__queue_type",
         "__owner_id",
         "__lobby_vc_id",
         "__winning_team",
         "__losing_team",
-        "__is_1v1",
     )
 
     def __init__(self, data: dict):
         self.__guild_id: int = data["guild_id"]
         self.__name: str = data["name"]
+        self.__queue_type: QueueType = data["queue_type"]
         self.__owner_id: int = data["owner_id"]
         self.__lobby_vc_id: int = data["lobby_vc_id"]
         self.__winning_team: MatchTeam = data["winning_team"]
         self.__losing_team: MatchTeam = data["losing_team"]
-        self.__is_1v1: bool = data["is_1v1"]
 
     @property
     def guild_id(self) -> int:
@@ -247,6 +248,10 @@ class MatchFinalisedPayload(WrapperBase):
     @property
     def name(self) -> str:
         return self.__name
+
+    @property
+    def queue_type(self) -> QueueType:
+        return self.__queue_type
 
     @property
     def owner_id(self) -> int:
@@ -268,31 +273,27 @@ class MatchFinalisedPayload(WrapperBase):
     def losing_team(self) -> MatchTeam:
         return self.__losing_team
 
-    @property
-    def is_1v1(self) -> bool:
-        return self.__is_1v1
-
     def serialise(self) -> dict:
         return {
             "guild_id": self.__guild_id,
             "name": self.__name,
+            "queue_type": self.__queue_type,
             "owner_id": self.__owner_id,
             "lobby_vc_id": self.__lobby_vc_id,
             "winning_team": self.__winning_team,
             "losing_team": self.__losing_team,
-            "is_1v1": self.__is_1v1,
         }
 
     @classmethod
-    def create(cls, *, guild_id: int, name: str, owner_id: int, match_entry: MatchEntry, is_1v1: bool) -> "MatchFinalisedPayload":
+    def create(cls, *, guild_id: int, name: str, queue_type: QueueType, owner_id: int, match_entry: MatchEntry) -> "MatchFinalisedPayload":
         return cls({
             "guild_id": guild_id,
             "name": name,
+            "queue_type": queue_type,
             "owner_id": owner_id,
             "lobby_vc_id": match_entry.voice_channel_id,
             "winning_team": match_entry.winning_team,
             "losing_team": match_entry.losing_team,
-            "is_1v1": is_1v1,
         })
 
 
@@ -306,8 +307,8 @@ class SeasonEndPayload(WrapperBase):
     def __init__(self, data: dict):
         self.__guild_id: int = data["guild_id"]
         self.__season: StatsSeason = data["season"]
-        self.__ranked_players: List[Tuple[int,
-                                          StatsPlayer]] = data["ranked_players"]
+        self.__ranked_players: Dict[QueueType,
+                                    List[Tuple[int, StatsPlayer]]] = data["ranked_players"]
 
     @property
     def guild_id(self) -> int:
@@ -318,18 +319,18 @@ class SeasonEndPayload(WrapperBase):
         return self.__season
 
     @property
-    def ranked_players(self) -> List[Tuple[int, StatsPlayer]]:
+    def ranked_players(self) -> Dict[QueueType, List[Tuple[int, StatsPlayer]]]:
         return self.__ranked_players
 
     def serialise(self) -> dict:
         return {
             "guild_id": self.__guild_id,
             "season": self.__season,
-            "ranked_players": self.__ranked_players
+            "ranked_players": self.__ranked_players,
         }
 
     @classmethod
-    def create(cls, *, guild_id: int, season: StatsSeason, ranked_players: List[Tuple[int, StatsPlayer]]) -> "SeasonEndPayload":
+    def create(cls, *, guild_id: int, season: StatsSeason, ranked_players: Dict[QueueType, List[Tuple[int, StatsPlayer]]]) -> "SeasonEndPayload":
         return cls({
             "guild_id": guild_id,
             "season": season,
@@ -341,11 +342,13 @@ class PlayerStatsResetPayload(WrapperBase):
     __slots__ = (
         "__user_id",
         "__guild_id",
+        "__queue_type",
     )
 
     def __init__(self, data: dict):
         self.__user_id: int = data["user_id"]
         self.__guild_id: int = data["guild_id"]
+        self.__queue_type: QueueType = data["queue_type"]
 
     @property
     def user_id(self) -> int:
@@ -355,17 +358,23 @@ class PlayerStatsResetPayload(WrapperBase):
     def guild_id(self) -> int:
         return self.__guild_id
 
+    @property
+    def queue_type(self) -> QueueType:
+        return self.__queue_type
+
     def serialise(self) -> dict:
         return {
             "user_id": self.__user_id,
             "guild_id": self.__guild_id,
+            "queue_type": self.__queue_type,
         }
 
     @classmethod
-    def create(cls, *, user_id: int, guild_id: int) -> "PlayerStatsResetPayload":
+    def create(cls, *, user_id: int, guild_id: int, queue_type: QueueType) -> "PlayerStatsResetPayload":
         return cls({
             "user_id": user_id,
             "guild_id": guild_id,
+            "queue_type": queue_type,
         })
 
 
@@ -373,6 +382,7 @@ class PlayerStatsEditPayload(WrapperBase):
     __slots__ = (
         "__user_id",
         "__guild_id",
+        "__queue_type",
         "__previous",
         "__new",
     )
@@ -380,6 +390,7 @@ class PlayerStatsEditPayload(WrapperBase):
     def __init__(self, data: dict):
         self.__user_id: int = data["user_id"]
         self.__guild_id: int = data["guild_id"]
+        self.__queue_type: QueueType = data["queue_type"]
         self.__previous: StatsPlayer = data["previous"]
         self.__new: StatsPlayer = data["new"]
 
@@ -390,6 +401,10 @@ class PlayerStatsEditPayload(WrapperBase):
     @property
     def guild_id(self) -> int:
         return self.__guild_id
+
+    @property
+    def queue_type(self) -> QueueType:
+        return self.__queue_type
 
     @property
     def previous(self) -> StatsPlayer:
@@ -408,10 +423,11 @@ class PlayerStatsEditPayload(WrapperBase):
         }
 
     @classmethod
-    def create(cls, *,  user_id: int, guild_id: int, previous: StatsPlayer, new: StatsPlayer) -> "PlayerStatsEditPayload":
+    def create(cls, *,  user_id: int, guild_id: int, queue_type: QueueType, previous: StatsPlayer, new: StatsPlayer) -> "PlayerStatsEditPayload":
         return cls({
             "user_id": user_id,
             "guild_id": guild_id,
+            "queue_type": queue_type,
             "previous": previous,
             "new": new,
         })

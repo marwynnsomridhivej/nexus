@@ -2,17 +2,19 @@ from typing import List
 
 import discord
 
+from queuemanager import QueueType
 from statsmanager import StatsPlayer
 
 from ..urls import R6URL
 
 
 class PlayerStatsEditDMView(discord.ui.LayoutView):
-    def __init__(self, *, user: discord.User, guild: discord.Guild, previous: StatsPlayer, new: StatsPlayer):
+    def __init__(self, *, user: discord.User, guild: discord.Guild, queue_type: QueueType, previous: StatsPlayer, new: StatsPlayer):
         super().__init__(timeout=None)
 
         self.user = user
         self.guild = guild
+        self.queue_type = queue_type
         self.previous = previous
         self.new = new
 
@@ -24,7 +26,7 @@ class PlayerStatsEditDMView(discord.ui.LayoutView):
 
         # Header
         header = discord.ui.TextDisplay("\n".join([
-            "## Alert - Stats Edited",
+            f"## Alert - Stats Edited ({self.queue_type})",
             f"An administrator for the server `{self.guild.name}` edited your stats for the current active season.",
         ]))
         items.append(header)

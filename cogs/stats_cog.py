@@ -6,6 +6,7 @@ from discord.ext import commands
 
 from canned import Canned
 from event import Event, MatchFinalisedPayload
+from queuemanager import QueueType
 from ui import LeaderboardView
 
 
@@ -27,14 +28,15 @@ class StatsCog(commands.Cog):
         for team in [payload.winning_team, payload.losing_team]:
             await self.bot.stats_manager.award_team(
                 guild_id=payload.guild_id,
+                queue_type=payload.queue_type,
                 team=team,
-                is_1v1=payload.is_1v1,
             )
 
     @app_commands.command(name="leaderboard", description="View the server leaderboard")
     @app_commands.describe(name="The name of the season you would like to view rankings for")
+    @app_commands.rename(queue_type="type")
     @app_commands.guild_only()
-    async def _leaderboard_command(self, interaction: discord.Interaction, name: Optional[str] = None):
+    async def _leaderboard_command(self, interaction: discord.Interaction, name: Optional[str] = None, queue_type: Optional[QueueType] = QueueType.R6_5V5):
         guild_id = interaction.guild_id
 
         # Ensure an active season exists if not named
@@ -46,7 +48,7 @@ class StatsCog(commands.Cog):
 
         # Ensure we have rankings and the season isn't empty (aka stats exist)
         try:
-            ranked_players = await self.bot.stats_manager.get_season_rankings(guild_id=guild_id, name=name)
+            ranked_players = await self.bot.stats_manager.get_season_rankings(guild_id=guild_id, queue_type=queue_type, name=name)
         except ValueError:
             return await interaction.response.send_message(Canned.ERR_STATS_INVALID_SEASON_NAME, ephemeral=True)
         else:
@@ -55,6 +57,7 @@ class StatsCog(commands.Cog):
 
         lbview = LeaderboardView(
             source_interaction=interaction,
+            queue_type=queue_type,
             season=await self.bot.stats_manager.get_season(
                 guild_id=guild_id,
                 name=name.lower() if name else None

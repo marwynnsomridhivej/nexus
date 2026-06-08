@@ -373,6 +373,7 @@ class R6View(discord.ui.LayoutView):
         self._draft_order = sorted([
             await self._bot.stats_manager.get_or_create_player(
                 guild_id=self._payload.guild_id,
+                queue_type=self._payload.entry.type,
                 user_id=_id,
             ) for _id in self._match.captains
         ], key=lambda p: p.points, reverse=bool(self.playercount % 2))
@@ -529,7 +530,7 @@ class R6View(discord.ui.LayoutView):
             self._payload.guild_id,
             self._match.voice_channel_id,
             [self._match.team_a, self._match.team_b],
-            self.playercount == 2,
+            self._match.type,
         ))
 
     async def _update_match(self) -> MatchEntry:
@@ -545,9 +546,9 @@ class R6View(discord.ui.LayoutView):
             self._bot.dispatch(Event.MATCH_FINALISED, MatchFinalisedPayload.create(
                 guild_id=self._payload.guild_id,
                 name=self._payload.match_name,
+                queue_type=self._match.type,
                 owner_id=self._payload.entry.owner_id,
                 match_entry=self._match,
-                is_1v1=self.playercount == 2
             ))
             return True
         return False

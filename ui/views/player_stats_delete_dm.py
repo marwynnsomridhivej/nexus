@@ -2,15 +2,18 @@ from typing import List
 
 import discord
 
+from queuemanager import QueueType
+
 from ..urls import R6URL
 
 
 class PlayerStatsDeleteDMView(discord.ui.LayoutView):
-    def __init__(self, *, user: discord.User, guild: discord.Guild):
+    def __init__(self, *, user: discord.User, guild: discord.Guild, queue_type: QueueType):
         super().__init__(timeout=None)
 
         self.user = user
         self.guild = guild
+        self.queue_type = queue_type
 
         self.init_components()
 
@@ -20,7 +23,7 @@ class PlayerStatsDeleteDMView(discord.ui.LayoutView):
 
         # Header
         header = discord.ui.TextDisplay("\n".join([
-            "## Alert - Stats Deleted",
+            f"## Alert - Stats Deleted ({self.queue_type})",
             f"An administrator for the server `{self.guild.name}` deleted your stats for the current active season.",
         ]))
         items.append(header)
@@ -50,7 +53,7 @@ class PlayerStatsDeleteDMView(discord.ui.LayoutView):
             self.text_display[1],
             discord.ui.Separator(),
             discord.ui.TextDisplay(
-                "-# If you believe this reset was performed in error, please contact server administrators"
+                "-# If you believe this deletion was performed in error, please contact server administrators"
             ),
             accent_color=discord.Color.blurple(),
         )

@@ -1,20 +1,20 @@
-from typing import List
+from typing import Dict, List
 
 import discord
 
+from queuemanager import ALL_R6_QUEUE_TYPES, QueueType
 from statsmanager import StatsPlayer, StatsSeason
 
 from ..urls import R6URL
 
 
 class SeasonEndDMView(discord.ui.LayoutView):
-    def __init__(self, *, guild: discord.Guild, season: StatsSeason, player: StatsPlayer, rank: int):
+    def __init__(self, *, guild: discord.Guild, season: StatsSeason, data: Dict[QueueType, Dict]):
         super().__init__(timeout=None)
 
         self._guild = guild
         self._season = season
-        self._player = player
-        self._rank = rank
+        self._data = data
 
         self.init_components()
 
@@ -31,24 +31,28 @@ class SeasonEndDMView(discord.ui.LayoutView):
         items.append(header)
         items.append(discord.ui.Separator())
 
-        # Individual Stats
-        stats = discord.ui.TextDisplay("\n".join([
-            f"### Individual Stats",
-            f"- Server rank: `{self._rank}`/`{self._season.player_count}`",
-            f"- Matches Played: `{self._player.matches_played}`",
-            f"- Points: `{self._player.points}` `({self._player.max_points} peak)`",
-            f"- Wins: `{self._player.wins}`",
-            f"- Losses: `{self._player.losses}`",
-            f"- Winrate (W/L ratio): `{self._player.wl_ratio * 100}`",
-            f"- Times MVP: `{self._player.times_mvp}`",
-        ]))
-        items.append(stats)
-        items.append(discord.ui.Separator())
+        for queue_type, data in self._data.items():
+            rank: int = data["rank"]
+            player: StatsPlayer = data["player"]
+            items.append(
+                discord.ui.TextDisplay("\n".join([
+                    f"### {queue_type}",
+                    f"- Server rank: `{rank}`/`{self._season.get_data_by_queue_type(queue_type).player_count}`",
+                    f"- Matches Played: `{player.matches_played}`",
+                    f"- Points: `{player.points}` `({player.max_points} peak)`",
+                    f"- Wins: `{player.wins}`",
+                    f"- Losses: `{player.losses}`",
+                    f"- Winrate (W/L ratio): `{player.wl_ratio * 100}`",
+                    f"- Times MVP: `{player.times_mvp}`",
+                ]))
+            )
+            items.append(discord.ui.Separator())
 
         # Ranking footer disclaimer
         disclaimer = discord.ui.TextDisplay(
-            "-# Note that multiple people can have the same rank if they have the " +
-            "same amount of points",
+            "-# The end of season summary only displays final standings for queue types you have played " +
+            "at least one game in (and have thus obtained a ranking). Multiple people can have the same " +
+            "rank if they have the same amount of points"
         )
         items.append(disclaimer)
 

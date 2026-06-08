@@ -8,6 +8,7 @@ from canned import Canned
 from event import *
 from exceptions import *
 from matchmanager import MatchTeam
+from queuemanager import ALL_R6_QUEUE_TYPES, QueueType
 
 
 class MonitoringCog(commands.Cog):
@@ -77,7 +78,7 @@ class MonitoringCog(commands.Cog):
 
     async def reset_button_vc_move(self, payload: VCResetPayload) -> None:
         # Don't do anything if it is a 1v1, since no separate VCs were created
-        if payload.is_1v1:
+        if payload.queue_type == QueueType.R6_1V1:
             return
 
         for team in payload.teams:
@@ -93,7 +94,7 @@ class MonitoringCog(commands.Cog):
 
     async def delete_vcs(self, payload: MatchFinalisedPayload) -> None:
         # Don't do anything if it is a 1v1, since no separate VCs were created
-        if payload.is_1v1:
+        if payload.queue_type == QueueType.R6_1V1:
             return
 
         for team in payload.teams:
@@ -129,7 +130,7 @@ class MonitoringCog(commands.Cog):
         await self._delete_dms(payload.guild_id, payload.players)
 
     async def increment_match_count(self, payload: MatchFinalisedPayload) -> None:
-        await self.bot.stats_manager.increment_season_match_count(payload.guild_id)
+        await self.bot.stats_manager.increment_season_match_count(payload.guild_id, queue_type=payload.queue_type)
 
     async def thread_cleanup(self, payload: PrematchPayload) -> None:
         thread_channel: discord.Thread = self.bot.get_channel(
@@ -180,7 +181,12 @@ class MonitoringCog(commands.Cog):
         if was_banned:
             try:
                 await self.bot.stats_manager.ensure_season(guild_id=payload.guild_id)
-                await self.bot.stats_manager.delete_player(guild_id=payload.guild_id, user_id=payload.user.id)
+                for queue_type in ALL_R6_QUEUE_TYPES:
+                    await self.bot.stats_manager.delete_player(
+                        guild_id=payload.guild_id,
+                        queue_type=queue_type,
+                        user_id=payload.user.id
+                    )
             except ValueError:
                 pass
             except PlayerDoesNotExist:

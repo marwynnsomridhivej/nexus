@@ -2,15 +2,18 @@ from typing import List
 
 import discord
 
+from queuemanager import QueueType
+
 from ..urls import R6URL
 
 
 class PlayerStatsResetDMView(discord.ui.LayoutView):
-    def __init__(self, *, user: discord.User, guild: discord.Guild):
+    def __init__(self, *, user: discord.User, guild: discord.Guild, queue_type: QueueType):
         super().__init__(timeout=None)
 
         self.user = user
         self.guild = guild
+        self.queue_type = queue_type
 
         self.init_components()
 
@@ -20,7 +23,7 @@ class PlayerStatsResetDMView(discord.ui.LayoutView):
 
         # Header
         header = discord.ui.TextDisplay("\n".join([
-            "## Alert - Stats Reset",
+            f"## Alert - Stats Reset ({self.queue_type})",
             f"An administrator for the server `{self.guild.name}` reset your stats for the current active season.",
         ]))
         items.append(header)

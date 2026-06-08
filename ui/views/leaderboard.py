@@ -7,16 +7,18 @@ from .paginator import Paginator, PaginatorButtonRow
 
 
 class LeaderboardView(Paginator):
-    def __init__(self, *, source_interaction: discord.Interaction, season, rankings):
+    def __init__(self, *, source_interaction: discord.Interaction, queue_type, season, rankings):
         super().__init__(
             source_interaction=source_interaction,
             data=rankings,
             per_page=8,
         )
 
+        from queuemanager import QueueType
         from statsmanager import StatsPlayer, StatsSeason
         self._season: StatsSeason = season
         self._data: List[Tuple[int, StatsPlayer]] = rankings
+        self.queue_type: QueueType = queue_type
         self.created_time = f"<t:{int(datetime.now().timestamp()) if self._season.is_current else self._season.end_timestamp}:f>"
 
     def paginate_text_display(self) -> List[discord.ui.Item]:
@@ -42,13 +44,17 @@ class LeaderboardView(Paginator):
     def init_components(self) -> None:
         container = discord.ui.Container(
             # Header, name type and page
-            discord.ui.TextDisplay(
-                f"## Leaderboard - {self._season.name.title()} [Page {self.current_page + 1}/{self.max_pages}]"),
+            discord.ui.TextDisplay("\n".join([
+                f"## Leaderboard - {self._season.name.title()} [Page {self.current_page + 1}/{self.max_pages}]",
+                f"Queue Type: *{self.queue_type}*"
+            ])),
+            discord.ui.Separator(),
 
             # Actual part that displays leaderboard
             *self.paginate_text_display(),
+            discord.ui.Separator(),
 
-            # Separator is padded at the end in *text_displays
+            # Tell user when these stats were tabulated and if they are finalised
             discord.ui.TextDisplay(
                 f"-# Statistics tabulated {"" if self._season.is_current else "and finalised "}as of {self.created_time}"),
 

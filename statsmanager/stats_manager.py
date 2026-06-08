@@ -6,6 +6,7 @@ import discord
 from base import ManagerBase
 from exceptions import PlayerDoesNotExist
 from matchmanager import MatchTeam
+from queuemanager import QueueType
 
 from .stats import *
 
@@ -27,44 +28,46 @@ class StatsManager(ManagerBase):
     async def _get_or_create_wrapper(self) -> StatsWrapper:
         return await super()._get_or_create_wrapper(cls=StatsWrapper)
 
-    async def get_or_create_player(self, *, guild_id: int, user_id: int) -> StatsPlayer:
+    async def get_or_create_player(self, *, guild_id: int, queue_type: QueueType, user_id: int) -> StatsPlayer:
         wrapper = await self._get_or_create_wrapper()
         sgc = wrapper.get_or_create(guild_id)
 
         try:
-            player = sgc.current.get_player(user_id, throw=True)
+            player = sgc.current.get_player(queue_type, user_id, throw=True)
         except PlayerDoesNotExist:
-            player = sgc.current.create_player(user_id)
+            player = sgc.current.create_player(queue_type, user_id)
             await self.write(wrapper)
 
         return player
 
-    async def get_guild_players(self, guild_id: int) -> List[StatsPlayer]:
+    async def get_guild_players(self, guild_id: int, queue_type: QueueType) -> List[StatsPlayer]:
         wrapper = await self._get_or_create_wrapper()
-        return [player for player in wrapper.get_or_create(guild_id).current.players.values()]
+        return [player for player in wrapper.get_or_create(guild_id).current.get_data_by_queue_type(queue_type).players.values()]
 
-    async def reset_player(self, *, guild_id: int, user_id: int) -> None:
+    async def reset_player(self, *, guild_id: int, queue_type: QueueType, user_id: int) -> None:
         wrapper = await self._get_or_create_wrapper()
         wrapper.get_or_create(guild_id).current.get_player(
-            user_id, throw=True).reset()
+            queue_type, user_id, throw=True).reset()
         await self.write(wrapper)
 
-    async def delete_player(self, *, guild_id: int, user_id: int) -> None:
+    async def delete_player(self, *, guild_id: int, queue_type: QueueType, user_id: int) -> None:
         wrapper = await self._get_or_create_wrapper()
-        wrapper.get_or_create(guild_id).current.delete_player(user_id)
+        wrapper.get_or_create(guild_id).current.delete_player(
+            queue_type, user_id)
         await self.write(wrapper)
 
-    async def edit_player(self, *, guild_id: int, user_id: int, new_stats: dict) -> StatsPlayer:
+    async def edit_player(self, *, guild_id: int, queue_type: QueueType, user_id: int, new_stats: dict) -> StatsPlayer:
         wrapper = await self._get_or_create_wrapper()
-        player = wrapper.get_or_create(guild_id).current.edit_player(user_id, new_stats)
+        player = wrapper.get_or_create(
+            guild_id).current.edit_player(queue_type, user_id, new_stats)
         await self.write(wrapper)
         return player
 
-    async def award_team(self, *, guild_id: int, team: MatchTeam, is_1v1: bool):
+    async def award_team(self, *, guild_id: int, queue_type: QueueType, team: MatchTeam):
         wrapper = await self._get_or_create_wrapper()
         for player_id in team.players:
             wrapper.get_or_create(guild_id).current.award_player(
-                player_id, team.mvp_id, team.win, is_1v1)
+                queue_type, player_id, team.mvp_id, team.win)
         await self.write(wrapper)
 
     # =====================================
@@ -111,7 +114,7 @@ class StatsManager(ManagerBase):
             seasons.insert(0, sgc.current)
         return discord.utils.find(lambda s: s.name == name, seasons)
 
-    async def get_season_rankings(self, *, guild_id: int, name: str = None) -> List[Tuple[int, StatsPlayer]]:
+    async def get_season_rankings(self, *, guild_id: int, queue_type: QueueType, name: str = None) -> List[Tuple[int, StatsPlayer]]:
         wrapper = await self._get_or_create_wrapper()
         sgc = wrapper.get_or_create(guild_id)
 
@@ -132,7 +135,7 @@ class StatsManager(ManagerBase):
                 f"No season exists with the name \"{name}\"")
 
         players = [
-            p for p in season.players.values()
+            p for p in season.get_data_by_queue_type(queue_type).players.values()
         ]
 
         # Sort player list by highest to lowest by points
@@ -175,7 +178,8 @@ class StatsManager(ManagerBase):
 
         return seasons
 
-    async def increment_season_match_count(self, guild_id: int) -> None:
+    async def increment_season_match_count(self, guild_id: int, queue_type: QueueType) -> None:
         wrapper = await self._get_or_create_wrapper()
-        wrapper.get_or_create(guild_id).current.match_count += 1
+        wrapper.get_or_create(guild_id).current.get_data_by_queue_type(
+            queue_type).match_count += 1
         await self.write(wrapper)

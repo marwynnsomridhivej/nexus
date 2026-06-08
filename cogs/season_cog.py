@@ -6,6 +6,7 @@ from discord.ext import commands
 
 from canned import Canned
 from event import *
+from queuemanager import ALL_R6_QUEUE_TYPES, QueueType
 from ui import (ConfirmationModal, SeasonEndDMView, SeasonsListView,
                 SeasonStartModal)
 
@@ -30,17 +31,25 @@ class SeasonCog(commands.GroupCog, name="season"):
         return interaction.user.guild_permissions.manage_guild
 
     async def _send_season_end_dms(self, payload: SeasonEndPayload) -> None:
-        for player in payload.season.players.values():
-            user = self.bot.get_user(player.id)
-            if user is None:
-                continue
-            rank = discord.utils.find(
-                lambda d: d[1].id == player.id, payload.ranked_players)[0]
+        users_data: Dict[discord.User, Dict[QueueType, Dict]] = {}
+
+        for queue_type, players in payload.ranked_players.items():
+            for (rank, player) in players:
+                user = self.bot.get_user(player.id)
+                if user is None:
+                    continue
+                if users_data.get(user) is None:
+                    users_data[user] = {}
+                users_data[user][queue_type] = {
+                    "rank": rank,
+                    "player": player,
+                }
+
+        for user, data in users_data.items():
             await user.send(view=SeasonEndDMView(
                 guild=self.bot.get_guild(payload.guild_id),
                 season=payload.season,
-                player=player,
-                rank=rank,
+                data=data,
             ))
 
     @app_commands.command(name="start", description="Starts a new season")
@@ -104,7 +113,12 @@ class SeasonCog(commands.GroupCog, name="season"):
 
         # Get season object and ranked players before season stop
         season = await self.bot.stats_manager.get_season(guild_id=guild_id)
-        ranked_players = await self.bot.stats_manager.get_season_rankings(guild_id=guild_id)
+        ranked_players = {
+            queue_type: await self.bot.stats_manager.get_season_rankings(
+                guild_id=guild_id,
+                queue_type=queue_type
+            ) for queue_type in ALL_R6_QUEUE_TYPES
+        }
 
         # Proceed to stop season
         await self.bot.stats_manager.stop_season(guild_id=guild_id)
@@ -112,7 +126,7 @@ class SeasonCog(commands.GroupCog, name="season"):
         await interaction.followup.send(Canned.SEASON_STOP_DM_CONF, ephemeral=True)
 
         # Dispatch season end event if there were active players in the season
-        if season.players:
+        if any([season.get_data_by_queue_type(queue_type).player_count > 0 for queue_type in ALL_R6_QUEUE_TYPES]):
             self.bot.dispatch(Event.SEASON_STOP, SeasonEndPayload.create(
                 guild_id=guild_id,
                 season=season,

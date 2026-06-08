@@ -8,7 +8,7 @@ from discord.ext import commands
 from canned import Canned
 from event import *
 from exceptions import *
-from queuemanager import CaptSelect
+from queuemanager import CaptSelect, QueueType
 from ui import *
 
 
@@ -45,8 +45,11 @@ class MatchCog(commands.GroupCog, name="match"):
                 continue
 
     async def _init_match_data(self, payload: PrematchPayload) -> None:
-        await self.bot.match_manager.create_match(payload=payload)
+        # Correct for QueueType mismatch based on playercount
+        if len(payload.entry.players) == 2:
+            payload.entry.type = QueueType.R6_1V1
 
+        await self.bot.match_manager.create_match(payload=payload)
         match = await self.bot.match_manager.get_match(payload.guild_id, payload.match_name)
 
         # Create thread channel
@@ -68,7 +71,7 @@ class MatchCog(commands.GroupCog, name="match"):
         self.bot.dispatch(Event.PREMATCH_DM_READY_SEND,
                           PrematchDMPayload.from_prematch_payload(payload, message))
 
-    async def _select_captains(self, *, guild_id: int, players: List[int], mode: CaptSelect) -> Tuple[int, int]:
+    async def _select_captains(self, *, guild_id: int, queue_type: QueueType, players: List[int], mode: CaptSelect) -> Tuple[int, int]:
         match mode:
             case CaptSelect.RANDOM:
                 return tuple(random.sample(players, 2))
@@ -76,6 +79,7 @@ class MatchCog(commands.GroupCog, name="match"):
                 captains = sorted([
                     await self.bot.stats_manager.get_or_create_player(
                         guild_id=guild_id,
+                        queue_type=queue_type,
                         user_id=_id
                     ) for _id in players
                 ], key=lambda p: p.points, reverse=True)
@@ -144,6 +148,7 @@ class MatchCog(commands.GroupCog, name="match"):
         else:
             captains = await self._select_captains(
                 guild_id=guild_id,
+                queue_type=entry.type,
                 players=entry.players,
                 mode=mode
             )
