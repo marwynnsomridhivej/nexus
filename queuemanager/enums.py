@@ -3,6 +3,7 @@ from enum import StrEnum
 __all__ = (
     "CaptSelect",
     "QueueType",
+    "ALL_R6_QUEUE_TYPES",
 )
 
 
@@ -15,3 +16,9 @@ class CaptSelect(StrEnum):
     RANDOM = "random"
     RATING = "rating"
     MANUAL = "manual"
+
+
+ALL_R6_QUEUE_TYPES = [
+    QueueType.R6_5V5,
+    QueueType.R6_1V1,
+]
