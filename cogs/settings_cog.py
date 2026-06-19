@@ -1,0 +1,45 @@
+from typing import Coroutine, Dict
+
+import discord
+from discord import app_commands
+from discord.ext import commands
+
+from ui import SettingsSelectView
+
+
+@app_commands.guild_only()
+class SettingsCog(commands.Cog):
+    def __init__(self, bot):
+        from bot import Bot
+        self.bot: Bot = bot
+
+    async def cog_load(self):
+        _handlers: Dict[Coroutine, str] = {
+            self._create_settings_on_guild_join: "guild_join",
+        }
+        for coro, event in _handlers.items():
+            self.bot.add_listener(coro, f"on_{event}")
+
+        self.bot.logger.info("[SettingsCog] Successfully loaded")
+
+    async def _create_settings_on_guild_join(self, guild: discord.Guild) -> None:
+        # Create default settings for new guilds upon join
+        await self.bot.settings_manager.create_guild_settings(guild.id)
+
+    @app_commands.command(name="settings", description="Configure various settings")
+    async def _settings(self, interaction: discord.Interaction):
+        view = SettingsSelectView(
+            guild_id=interaction.guild_id,
+            user_id=interaction.user.id,
+            source_interaction=interaction,
+            bot=self.bot,
+        )
+        return await interaction.response.send_message(
+            view=view,
+            ephemeral=True,
+            allowed_mentions=discord.AllowedMentions.none(),
+        )
+
+
+async def setup(bot):
+    await bot.add_cog(SettingsCog(bot))
