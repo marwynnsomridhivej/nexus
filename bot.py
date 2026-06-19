@@ -12,6 +12,7 @@ from dmmanager import DMManager
 from matchmanager import MatchManager
 from queuemanager import QueueManager
 from statsmanager import StatsManager
+from settingsmanager import SettingsManager
 
 
 class Bot(commands.Bot):
@@ -40,6 +41,7 @@ class Bot(commands.Bot):
         self.match_manager: MatchManager = MatchManager(self.config.data_dir)
         self.queue_manager: QueueManager = QueueManager(self.config.data_dir)
         self.stats_manager: StatsManager = StatsManager(self.config.data_dir)
+        self.settings_manager: SettingsManager = SettingsManager(self.config.data_dir)
 
         # Should we wipe DMs with everyone?
         self.dm_wipe = kwargs.get("dm_wipe")
@@ -53,6 +55,7 @@ class Bot(commands.Bot):
         await self.match_manager.load()
         await self.queue_manager.load()
         await self.stats_manager.load()
+        await self.settings_manager.load()
 
         # Load all cogs
         for cog in self.config.cogs:
@@ -76,6 +79,8 @@ class Bot(commands.Bot):
     async def on_ready(self):
         await self.wait_until_ready()
         await self.dm_manager.purge_all()
+        for guild in self.guilds:
+            await self.settings_manager.create_guild_settings(guild.id, new_only=True)
 
         if not self.dm_wipe:
             return
