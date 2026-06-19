@@ -9,6 +9,8 @@ __all__ = (
     "MapAlreadyBanned",
 
     "MVPAlreadyAssigned",
+    
+    "RoundsWonTeamWonMismatch",
 )
 
 
@@ -46,4 +48,8 @@ class MapAlreadyBanned(Exception):
 
 
 class MVPAlreadyAssigned(Exception):
+    pass
+
+
+class RoundsWonTeamWonMismatch(ValueError):
     pass
