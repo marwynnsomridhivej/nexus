@@ -16,8 +16,13 @@ __all__ = (
     # Seasons
     "SeasonStartModal",
 
-    # Stats
-    "PlayerStatsEditModal",
+    # Settings - General
+    "SettingsBindTextChannelModal",
+    "SettingsSetAdminModal",
+
+    # Settings - Map Pool
+    "SettingsMapPoolCreateModal",
+    "SettingsMapPoolEditModal",
 )
 
 # Feedback
@@ -37,5 +42,6 @@ from .match.r6side import R6SideModal
 # Season modals
 from .season.season_start import SeasonStartModal
 
-# Stat Modals
-from .player.player_stats_edit import PlayerStatsEditModal
+# Setting Modals
+from .settings.settings_general import SettingsBindTextChannelModal, SettingsSetAdminModal
+from .settings.settings_map_pool import SettingsMapPoolCreateModal, SettingsMapPoolEditModal
