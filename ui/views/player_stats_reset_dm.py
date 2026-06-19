@@ -31,7 +31,7 @@ class PlayerStatsResetDMView(discord.ui.LayoutView):
         # Body
         body = discord.ui.TextDisplay("\n".join([
             "### How Does This Affect You?",
-            "- Your wins, losses, matches played, points, and peak points have been reset to `0`",
+            "- Your wins, losses, matches played, and rating have been reset",
             "- Your placement on the server leaderboard for the current season now reflects this change",
             "- You are still eligible to participate in matches and can earn points normally",
             "### Disclaimer",

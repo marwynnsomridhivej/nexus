@@ -21,6 +21,19 @@ class LeaderboardView(Paginator):
         self.queue_type: QueueType = queue_type
         self.created_time = f"<t:{int(datetime.now().timestamp()) if self._season.is_current else self._season.end_timestamp}:f>"
 
+    def _get_rating_text(self, player) -> str:
+        # Typehints
+        from statsmanager import StatsPlayer
+        assert isinstance(player, StatsPlayer)
+
+        # Refer to appropriate rating metrics
+        _current, _max = (player.rating, player.max_rating) if not player.is_legacy else (
+            player.points, player.max_points)
+        _type = " rating" if not player.is_legacy else "pts"
+
+        # Return final formatted string
+        return f"> - `{_current}`{_type} (`{_max}` peak)"
+
     def paginate_text_display(self) -> List[discord.ui.Item]:
         items = []
         index_base = self.per_page * self.current_page
@@ -31,7 +44,7 @@ class LeaderboardView(Paginator):
                 items.append(discord.ui.TextDisplay(
                     "\n".join([
                         f"### {rank}. <@{player.id}>",
-                        f"> - `{player.points}`pts (`{player.max_points}` peak)",
+                        self._get_rating_text(player),
                         f"> - `{player.matches_played}` Match{"es" if player.matches_played != 1 else ""} Played",
                         f"> - `{player.wins}`W/`{player.losses}`L (`{player.wl_ratio * 100}%` WL)",
                         f"> - `{player.times_mvp}` time{"s" if player.times_mvp != 1 else ""} MVP",

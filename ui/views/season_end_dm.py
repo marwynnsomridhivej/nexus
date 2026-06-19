@@ -2,7 +2,7 @@ from typing import Dict, List
 
 import discord
 
-from queuemanager import ALL_R6_QUEUE_TYPES, QueueType
+from queuemanager import QueueType
 from statsmanager import StatsPlayer, StatsSeason
 
 from ..urls import R6URL
@@ -17,6 +17,15 @@ class SeasonEndDMView(discord.ui.LayoutView):
         self._data = data
 
         self.init_components()
+
+    def _get_rating_text(self, player: StatsPlayer) -> str:
+        # Refer to appropriate rating metrics
+        _current, _max = (player.rating, player.max_rating) if not player.is_legacy else (
+            player.points, player.max_points)
+        _type = "Rating" if not player.is_legacy else "Points"
+
+        # Return final formatted string
+        return f"- {_type}: `{_current}` `({_max} peak)`"
 
     @property
     def text_display(self) -> List[discord.ui.Item]:
@@ -39,7 +48,7 @@ class SeasonEndDMView(discord.ui.LayoutView):
                     f"### {queue_type}",
                     f"- Server rank: `{rank}`/`{self._season.get_data_by_queue_type(queue_type).player_count}`",
                     f"- Matches Played: `{player.matches_played}`",
-                    f"- Points: `{player.points}` `({player.max_points} peak)`",
+                    self._get_rating_text(player),
                     f"- Wins: `{player.wins}`",
                     f"- Losses: `{player.losses}`",
                     f"- Winrate (W/L ratio): `{player.wl_ratio * 100}`",
@@ -52,7 +61,7 @@ class SeasonEndDMView(discord.ui.LayoutView):
         disclaimer = discord.ui.TextDisplay(
             "-# The end of season summary only displays final standings for queue types you have played " +
             "at least one game in (and have thus obtained a ranking). Multiple people can have the same " +
-            "rank if they have the same amount of points"
+            "rank if they have the same rating or amount of points"
         )
         items.append(disclaimer)
 

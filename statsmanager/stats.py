@@ -1,8 +1,10 @@
 from datetime import datetime
 from decimal import Decimal
 from typing import Dict, List, Union
+from warnings import deprecated
 
 from base import WrapperBase
+from canned import Canned
 from exceptions import *
 from queuemanager import QueueType
 
@@ -215,48 +217,23 @@ class StatsSeason(WrapperBase):
             raise PlayerDoesNotExist(user_id)
         del data.players[user_id]
 
-    def edit_player(self, queue_type: QueueType, user_id: int, new_stats: dict) -> "StatsPlayer":
-        """Edits a player's stats entry
-
-        Args:
-            queue_type (QueueType): The queue type to search
-            user_id (int): The ID of the user
-            new_stats (dict): A payload containing user stats
-
-        Raises:
-            PlayerDoesNotExist: No StatsPlayer exists for the specified user
-
-        Returns:
-            StatsPlayer: The edited StatsPlayer instance
-        """
-        data = self.get_data_by_queue_type(queue_type)
-        if data.players.get(user_id) is None:
-            raise PlayerDoesNotExist(user_id)
-
-        player = data.players[user_id]
-        player.wins = new_stats["wins"]
-        player.losses = new_stats["losses"]
-        player.points = new_stats["points"]
-        player.max_points = new_stats["max_points"]
-        player.times_mvp = new_stats["times_mvp"]
-        return player
-
-    def award_player(self, queue_type: QueueType, user_id: int, mvp_id: int, win: bool) -> None:
+    def award_player(self, queue_type: QueueType, user_id: int, mvp: bool, win: bool, mu: float, sigma: float) -> None:
         """Awards the specified player points for winning or losing a match
 
         Args:
             queue_type (QueueType): The queue type to search
             user_id (int): The ID of the user
-            mvp_id (int): The ID of the team's MVP
+            mvp (bool): Whether or not the player was the team's MVP
             win (bool): Whether or not the player was on the winning team
+            mu (float): The player's new OpenSkill mu
+            sigma (float): The player's new OpenSkill sigma
         """
         try:
             player = self.get_player(queue_type, user_id, throw=True)
         except PlayerDoesNotExist:
             player = self.create_player(queue_type, user_id)
 
-        func = player.win if win else player.lose
-        func(user_id == mvp_id, queue_type)
+        player.award(win, mvp, mu, sigma)
 
     def serialise(self) -> dict:
         return {
@@ -307,7 +284,7 @@ class StatsInfo(WrapperBase):
         return {
             "match_count": self.match_count,
             "players": {
-                user_id: player.serialise() for user_id, player in self.players.items()
+                user_id: player.serialise() for user_id, player in self.players.items() if player.matches_played > 0
             },
         }
 
@@ -325,8 +302,15 @@ class StatsPlayer(WrapperBase):
         "wins",
         "losses",
         "times_mvp",
-        "points",
-        "max_points",
+
+        # OpenSkill
+        "mu",
+        "sigma",
+        "max_ordinal",
+
+        # Legacy
+        "__points",
+        "__max_points",
     )
 
     def __init__(self, data: dict):
@@ -334,66 +318,72 @@ class StatsPlayer(WrapperBase):
         self.wins: int = data["wins"]
         self.losses: int = data["losses"]
         self.times_mvp: int = data["times_mvp"]
-        self.points: int = data["points"]
-        self.max_points: int = data["max_points"]
 
-    def __eq__(self, other: "StatsPlayer") -> bool:
-        return all([getattr(self, attr) == getattr(other, attr) for attr in [
-            "id",
-            "wins",
-            "losses",
-            "times_mvp",
-            "points",
-            "max_points",
-        ]])
+        # New v2.x+ OpenSkill rating parameters.
+        # These values can be None when handling v1.x data
+        self.mu: Union[float, None] = data.get("mu", 25)
+        self.sigma: Union[float, None] = data.get("sigma", 25 / 3)
+        self.max_ordinal: Union[float, None] = data.get("max_ordinal", 0)
 
-    def __ne__(self, other: "StatsPlayer") -> bool:
-        return not self == other
+        # Legacy v1.x points system
+        self.__points: Union[int, None] = data.get("points")
+        self.__max_points: Union[int, None] = data.get("max_points")
 
-    def win(self, mvp: bool, queue_type: QueueType) -> None:
-        """Awards a win to the player and adjusts values accordingly
+    # ======================================
+    # ======OPENSKILL V2.X+ ATTRIBUTES======
+    # ======================================
 
-        Args:
-            mvp (bool): Whether or not the player was the team MVP
-            queue_type (QueueType): The queue type of the match
+    @property
+    def ordinal(self) -> float:
+        """The StatsPlayer's OpenSkill ordinal, used in the backend for
+        leaderboard rankings.
+
+        Returns:
+            float: mu - 3 * sigma
         """
-        self.wins += 1
+        return self.mu - 3 * self.sigma
 
-        # Default point gain per win (+1 for 1v1, +2 otherwise)
-        self.points += 1 if queue_type == QueueType.R6_1V1 else 2
+    @property
+    def rating(self) -> Decimal:
+        """The StatsPlayer's visible rating. Should be player-facing
+        only, and not used internally
 
-        if mvp:
-            # 1 bonus point, and MVP designation
-            self.points += 1
-            self.times_mvp += 1
-
-        if self.points > self.max_points:
-            self.max_points = self.points
-
-    def lose(self, mvp: bool, *_) -> None:
-        """Awards a loss to the player and adjusts values accordingly
-
-        Args:
-            mvp (bool): Whether or not the player was the team MVP
+        Returns:
+            Decimal: 50 + 3 * ordinal, rounded to two decimal places
         """
-        self.losses += 1
+        return Decimal(50 + 3 * self.ordinal).quantize(Decimal("0.01"))
 
-        # Default point loss per loss
-        self.points -= 1
+    @property
+    def max_rating(self) -> Decimal:
+        """The StatsPlayer's peak visible rating. Should be player-facing only,
+        and not used internally
 
-        if mvp:
-            # Add 1 bonus point to negate the points lost, and MVP designation
-            self.points += 1
-            self.times_mvp += 1
-
-    def reset(self) -> None:
-        """Reset a player's win, loss, mvp, and points data
+        Returns:
+            Decimal: Peak visible rating achieved, rounded to two decimal places
         """
-        self.wins = 0
-        self.losses = 0
-        self.times_mvp = 0
-        self.points = 0
-        self.max_points = 0
+        return Decimal(50 + 3 * self.max_ordinal).quantize(Decimal("0.01"))
+
+    # ==================================
+    # ======LEGACY V1.X ATTRIBUTES======
+    # ==================================
+
+    @property
+    def is_legacy(self) -> bool:
+        return self.__points is not None and self.__max_points is not None
+
+    @property
+    @deprecated(Canned.DEPR_V1X_POINTS)
+    def points(self) -> Union[int, None]:
+        return self.__points
+
+    @property
+    @deprecated(Canned.DEPR_V1X_POINTS)
+    def max_points(self) -> Union[int, None]:
+        return self.__max_points
+
+    # =================================
+    # =========UTIL PROPERTIES=========
+    # =================================
 
     @property
     def matches_played(self) -> int:
@@ -403,20 +393,88 @@ class StatsPlayer(WrapperBase):
     def wl_ratio(self) -> Decimal:
         return Decimal("{:.2f}".format(self.wins / self.matches_played)) if self.matches_played > 0 else Decimal()
 
+    def __eq__(self, other: "StatsPlayer") -> bool:
+        return all([getattr(self, attr) == getattr(other, attr) for attr in [
+            "id",
+            "wins",
+            "losses",
+            "times_mvp",
+            "mu",
+            "sigma",
+            "max_ordinal",
+            "__points",
+            "__max_points",
+        ]])
+
+    def __ne__(self, other: "StatsPlayer") -> bool:
+        return not self == other
+
+    def award(self, win: bool, mvp: bool, mu: float, sigma: float) -> Decimal:
+        """Awards the player and adjusts values accordingly
+
+        Args:
+            win (bool): Whether or not the player was on the winning team
+            mvp (bool): Whether or not the player was the team MVP
+            mu (float): The player's new OpenSkill mu
+            sigma (float): The player's new OpenSkill sigma
+
+        Returns:
+            Decimal: The change in the player's rating
+        """
+        if win:
+            self.wins += 1
+        else:
+            self.losses += 1
+
+        if mvp:
+            self.times_mvp += 1
+
+        previous = self.ordinal
+
+        self.mu = mu
+        self.sigma = sigma
+
+        current = self.ordinal
+
+        if self.ordinal > self.max_ordinal:
+            self.max_ordinal = self.ordinal
+
+        return Decimal(current - previous)
+
+    def reset(self) -> None:
+        """Reset a player's win, loss, mvp, and OpenSkill rating
+        """
+        self.wins = 0
+        self.losses = 0
+        self.times_mvp = 0
+        self.mu = 25
+        self.sigma = 25 / 3
+        self.max_ordinal = 0
+
     def serialise(self) -> dict:
         """Convert StatsPlayer instance representation into a dict
 
         Returns:
             dict: Dictionary representation of the StatsPlayer instance
         """
-        return {
-            "id":           self.id,
-            "wins":         self.wins,
-            "losses":       self.losses,
-            "times_mvp":    self.times_mvp,
-            "points":       self.points,
-            "max_points":   self.max_points,
+        data = {
+            "id":               self.id,
+            "wins":             self.wins,
+            "losses":           self.losses,
+            "times_mvp":        self.times_mvp,
         }
+
+        if self.is_legacy:
+            # Return legacy format if v1.x data only
+            data["points"] = self.__points
+            data["max_points"] = self.__max_points
+        else:
+            # Use OpenSkill for v2.x+
+            data["mu"] = self.mu
+            data["sigma"] = self.sigma
+            data["max_ordinal"] = self.max_ordinal
+
+        return data
 
     @classmethod
     def create_zeroed(cls, user_id: int) -> "StatsPlayer":
@@ -429,10 +487,13 @@ class StatsPlayer(WrapperBase):
             StatsPlayer: The created zeroed instance
         """
         return cls.parse({
-            "id":      user_id,
+            "id":           user_id,
             "wins":         0,
             "losses":       0,
             "times_mvp":    0,
-            "points":       0,
-            "max_points":   0,
+
+            # OpenSkill
+            "mu":           25,
+            "sigma":        25 / 3,
+            "max_ordinal":  0,
         })

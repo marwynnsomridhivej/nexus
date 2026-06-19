@@ -2,10 +2,10 @@ import copy
 from typing import List, Tuple
 
 import discord
+from openskill.models import PlackettLuce, PlackettLuceRating
 
 from base import ManagerBase
 from exceptions import PlayerDoesNotExist
-from matchmanager import MatchTeam
 from queuemanager import QueueType
 
 from .stats import *
@@ -18,6 +18,13 @@ __all__ = (
 class StatsManager(ManagerBase):
     def __init__(self, stats_loc: str):
         super().__init__(stats_loc, "stats")
+
+        # Initialise the OpenSkill model
+        self.model: PlackettLuce = PlackettLuce(
+            limit_sigma=True,
+            margin=4,
+            weight_bounds=(1, 1.225),
+        )
 
     async def load(self):
         await super().load(name="StatsManager")
@@ -56,18 +63,18 @@ class StatsManager(ManagerBase):
             queue_type, user_id)
         await self.write(wrapper)
 
-    async def edit_player(self, *, guild_id: int, queue_type: QueueType, user_id: int, new_stats: dict) -> StatsPlayer:
+    async def award_team(self, *, guild_id: int, queue_type: QueueType, ratings: List[PlackettLuceRating], mvp_id: int, win: bool):
         wrapper = await self._get_or_create_wrapper()
-        player = wrapper.get_or_create(
-            guild_id).current.edit_player(queue_type, user_id, new_stats)
-        await self.write(wrapper)
-        return player
-
-    async def award_team(self, *, guild_id: int, queue_type: QueueType, team: MatchTeam):
-        wrapper = await self._get_or_create_wrapper()
-        for player_id in team.players:
+        for rating in ratings:
+            player_id = int(rating.name)
             wrapper.get_or_create(guild_id).current.award_player(
-                queue_type, player_id, team.mvp_id, team.win)
+                queue_type,
+                player_id,
+                mvp_id == player_id,
+                win,
+                rating.mu,
+                rating.sigma,
+            )
         await self.write(wrapper)
 
     # =====================================
@@ -141,29 +148,36 @@ class StatsManager(ManagerBase):
         # Sort player list by highest to lowest by points
         # Point tiebreak handled by win loss ratio
         # Win loss ratio tiebreak handled by matches played
-        players.sort(key=lambda p: (p.points, p.times_mvp,
-                     p.wl_ratio, p.matches_played), reverse=True)
+        players.sort(key=lambda p: (
+            p.ordinal if not p.is_legacy else p.points,
+            p.times_mvp,
+            p.wl_ratio,
+            p.matches_played,
+        ), reverse=True)
 
-        previous_points = None
+        previous_rating = None
         previous_rank = None
         rank_ordered = []
         for rank, player in enumerate(players, 1):
-            # Initialise the previous point count if not set
-            if previous_points is None:
-                previous_points = player.points
+            # Get rating attribute based on legacy
+            attr = player.ordinal if not player.is_legacy else player.points
+
+            # Initialise the previous rating if not set
+            if previous_rating is None:
+                previous_rating = attr
 
             # Initialise the previous rank if not set
             if previous_rank is None:
                 previous_rank = rank
 
-            # Check if current player has same points as previous. If so, reuse previous rank number
-            if player.points == previous_points:
+            # Check if current player has same rating as previous. If so, reuse previous rank number
+            if attr == previous_rating:
                 rank_ordered.append((previous_rank, player))
                 continue
 
-            # Otherwise, append true rank and player, update previous points and rank
+            # Otherwise, append true rank and player, update previous rating and rank
             rank_ordered.append((rank, player))
-            previous_points = player.points
+            previous_rating = attr
             previous_rank = rank
 
         return rank_ordered

@@ -3,6 +3,7 @@ from typing import Coroutine, Dict, List, Optional
 import discord
 from discord import app_commands
 from discord.ext import commands
+from openskill.models import PlackettLuceRating
 
 from canned import Canned
 from event import Event, MatchFinalisedPayload
@@ -24,13 +25,62 @@ class StatsCog(commands.Cog):
 
         self.bot.logger.info("[StatsCog] Successfully loaded")
 
+    async def _create_openskill_rating_object(self, guild_id: int, user_id: int, queue_type: QueueType) -> PlackettLuceRating:
+        player = await self.bot.stats_manager.get_or_create_player(
+            guild_id=guild_id,
+            queue_type=queue_type,
+            user_id=user_id,
+        )
+        return self.bot.stats_manager.model.create_rating([player.mu, player.sigma], name=f"{user_id}")
+
     async def calc_stats(self, payload: MatchFinalisedPayload):
-        for team in [payload.winning_team, payload.losing_team]:
-            await self.bot.stats_manager.award_team(
-                guild_id=payload.guild_id,
-                queue_type=payload.queue_type,
-                team=team,
-            )
+        # Create rating objects from StatsPlayer mu and sigma for both teams
+        winning_team: List[PlackettLuceRating] = [
+            await self._create_openskill_rating_object(
+                payload.guild_id,
+                player_id,
+                payload.queue_type,
+            ) for player_id in payload.winning_team.players
+        ]
+        losing_team: List[PlackettLuceRating] = [
+            await self._create_openskill_rating_object(
+                payload.guild_id,
+                player_id,
+                payload.queue_type,
+            ) for player_id in payload.losing_team.players
+        ]
+
+        # Create weights to designate MVP performance
+        winning_weights = [
+            10 if payload.winning_team.mvp_id is None or player_id != payload.winning_team.mvp_id else 11.625 for player_id in payload.winning_team.players
+        ]
+        losing_weights = [
+            10 if payload.losing_team.mvp_id is None or player_id != payload.losing_team.mvp_id else 11.625 for player_id in payload.losing_team.players
+        ]
+
+        # Rate all players in the match
+        new_winning_team_rating, new_losing_team_rating = self.bot.stats_manager.model.rate(
+            [winning_team, losing_team],
+            scores=[payload.winning_team.rounds_won,
+                    payload.losing_team.rounds_won],
+            weights=[winning_weights, losing_weights],
+        )
+
+        # Update stats
+        await self.bot.stats_manager.award_team(
+            guild_id=payload.guild_id,
+            queue_type=payload.queue_type,
+            ratings=new_winning_team_rating,
+            mvp_id=payload.winning_team.mvp_id,
+            win=True,
+        )
+        await self.bot.stats_manager.award_team(
+            guild_id=payload.guild_id,
+            queue_type=payload.queue_type,
+            ratings=new_losing_team_rating,
+            mvp_id=payload.losing_team.mvp_id,
+            win=False,
+        )
 
     @app_commands.command(name="leaderboard", description="View the server leaderboard")
     @app_commands.describe(name="The name of the season you would like to view rankings for")
