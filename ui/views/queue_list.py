@@ -5,6 +5,10 @@ import discord
 from ..urls import R6URL
 from .paginator import *
 
+__all__ = (
+    "QueueListView",
+)
+
 
 class QueueListView(Paginator):
     def __init__(self, *, source_interaction: discord.Interaction, data, criteria: List[str], per_page: int = 3):

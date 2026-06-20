@@ -7,6 +7,10 @@ from statsmanager import StatsPlayer, StatsSeason
 
 from ..urls import R6URL
 
+__all__ = (
+    "SeasonEndDMView",
+)
+
 
 class SeasonEndDMView(discord.ui.LayoutView):
     def __init__(self, *, guild: discord.Guild, season: StatsSeason, data: Dict[QueueType, Dict]):

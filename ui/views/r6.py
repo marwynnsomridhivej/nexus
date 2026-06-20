@@ -12,6 +12,12 @@ from statsmanager import StatsPlayer
 from ..modals import *
 from ..urls import R6URL
 
+__all__ = (
+    "R6View",
+    "R6ViewButtons",
+    "R6ViewAdminButtons",
+)
+
 INIT_DISABLED = [
     "Ban Map",
     "Side Select",

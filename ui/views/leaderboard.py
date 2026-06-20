@@ -5,6 +5,10 @@ import discord
 
 from .paginator import Paginator, PaginatorButtonRow
 
+__all__ = (
+    "LeaderboardView",
+)
+
 
 class LeaderboardView(Paginator):
     def __init__(self, *, source_interaction: discord.Interaction, queue_type, season, rankings):

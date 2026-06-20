@@ -6,6 +6,10 @@ from event import PrematchDMPayload
 
 from ..urls import R6URL
 
+__all__ = (
+    "MatchStartDMView",
+)
+
 
 class MatchStartDMView(discord.ui.LayoutView):
     def __init__(self, *, guild: discord.Guild, payload: PrematchDMPayload):

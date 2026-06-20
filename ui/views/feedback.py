@@ -2,6 +2,10 @@ import discord
 
 from ..feedback_type import FeedbackType
 
+__all__ = (
+    "FeedbackView",
+)
+
 
 class FeedbackView(discord.ui.LayoutView):
     def __init__(self, *, feedback_type: FeedbackType, content: str, interaction: discord.Interaction):

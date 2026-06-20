@@ -6,6 +6,10 @@ from queuemanager import QueueType
 
 from ..urls import R6URL
 
+__all__ = (
+    "PlayerStatsResetDMView",
+)
+
 
 class PlayerStatsResetDMView(discord.ui.LayoutView):
     def __init__(self, *, user: discord.User, guild: discord.Guild, queue_type: QueueType):

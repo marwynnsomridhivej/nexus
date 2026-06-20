@@ -6,6 +6,10 @@ from queuemanager import QueueEntry
 
 from ..urls import R6URL
 
+__all__ = (
+    "QueueFilledDMView",
+)
+
 
 class QueueFilledDMView(discord.ui.LayoutView):
     def __init__(self, *, guild: discord.Guild, name: str, entry):

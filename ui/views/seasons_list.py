@@ -6,6 +6,10 @@ from queuemanager import QueueType
 
 from .paginator import Paginator, PaginatorButtonRow
 
+__all__ = (
+    "SeasonsListView",
+)
+
 
 class SeasonsListView(Paginator):
     def __init__(self, *, source_interaction: discord.Interaction, seasons):
