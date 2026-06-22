@@ -1,5 +1,4 @@
-import random
-from typing import Coroutine, Dict, List, Tuple
+from typing import Coroutine, Dict
 
 import discord
 from discord import app_commands
@@ -9,9 +8,9 @@ from canned import Canned
 from event import *
 from exceptions import *
 from matchmanager import R6_QUICKMATCH, R6_RANKED
-from queuemanager import CaptSelect, QueueType
+from queuemanager import QueueType
 from settingsmanager import DEFAULT_MAP_POOL_NAMES, CustomMapPool
-from ui import MatchStartDMView, PreMatchModal, R6View
+from ui import MatchStartDMView, PrematchView, PrematchViewButtons, R6View
 
 
 @app_commands.guild_only()
@@ -102,22 +101,6 @@ class MatchCog(commands.GroupCog, name="match"):
             interaction.user.id,
         )
 
-    async def _select_captains(self, *, guild_id: int, queue_type: QueueType, player_ids: List[int], mode: CaptSelect) -> Tuple[int, int]:
-        match mode:
-            case CaptSelect.RANDOM:
-                return tuple(random.sample(player_ids, 2))
-            case CaptSelect.RATING:
-                captains = sorted([
-                    await self.bot.stats_manager.get_or_create_player(
-                        guild_id=guild_id,
-                        queue_type=queue_type,
-                        user_id=_id
-                    ) for _id in player_ids
-                ], key=lambda p: p.ordinal if not p.is_legacy else p.points, reverse=True)
-                return (captains[0].id, captains[1].id)
-            case _:
-                raise ValueError(mode)
-
     @app_commands.command(name="start", description="Enter pre-match configuration details")
     async def _start_match(self, interaction: discord.Interaction):
         guild_id = interaction.guild_id
@@ -164,68 +147,17 @@ class MatchCog(commands.GroupCog, name="match"):
             self.bot.user.id, qm_name, R6_QUICKMATCH)
         all_pools = [ranked_pool, qm_pool] + await self.bot.settings_manager.get_all_map_pools(interaction.guild_id)
 
-        # If previous checks succeed, display the prematch modal
-        prematch_modal = PreMatchModal(self.bot, valid_owned_queues, all_pools)
-        await interaction.response.send_modal(prematch_modal)
+        # Initialise prematch view and submit buttons
+        prematch_view = PrematchView(self.bot, valid_owned_queues, all_pools)
+        prematch_view_submit_button = PrematchViewButtons(
+            view=prematch_view,
+            original_interaction=interaction,
+            admin_or_owner=admin_or_owner,
+        )
+        prematch_view.init_components(prematch_view_submit_button)
 
-        # Ensure we don't access any attributes until user has submitted
-        await prematch_modal.wait()
-
-        # Don't do anything if we get an invalid answer or the modal errored out
-        if not prematch_modal.is_valid:
-            return
-
-        # Check if our entry can be started
-        assert isinstance(prematch_modal.queue.component, discord.ui.Select)
-        name: str = prematch_modal.queue.component.values[0]
-        try:
-            entry = await self.bot.queue_manager.start_match(guild_id, owner_id, name, admin=admin_or_owner)
-        except QueueProgressStateError:
-            await interaction.followup.send(Canned.ERR_MATCH_IN_PROGRESS, ephemeral=True)
-
-        # For type hints
-        assert isinstance(prematch_modal.vc.component,
-                          discord.ui.ChannelSelect)
-        assert isinstance(prematch_modal.map_pool.component, discord.ui.Select)
-        assert isinstance(
-            prematch_modal.captain_select.component, discord.ui.RadioGroup)
-        assert isinstance(
-            prematch_modal.manual_select.component, discord.ui.UserSelect)
-
-        vc = prematch_modal.vc.component.values[0]
-
-        # Get map pool instance from name
-        pool_name = prematch_modal.map_pool.component.values[0]
-        map_pool = ranked_pool if pool_name == ranked_name else \
-            qm_pool if pool_name == qm_name else \
-            await self.bot.settings_manager.get_map_pool(guild_id, pool_name)
-
-        # Craft payload to be dispatched on event
-        mode = prematch_modal.captain_select.component.value
-        if mode == CaptSelect.MANUAL:
-            captains = tuple(
-                userlike.id for userlike in prematch_modal.manual_select.component.values
-            )
-        else:
-            captains = await self._select_captains(
-                guild_id=guild_id,
-                queue_type=entry.type,
-                player_ids=entry.players,
-                mode=mode
-            )
-        payload = PrematchPayload.parse({
-            "guild_id": guild_id,
-            "match_name": name,
-            "voice_channel_id": vc.id,
-            "text_channel_id": tc.id,
-            "map_pool": map_pool.serialise(),
-            "captains": captains,
-            "entry": entry,
-        })
-
-        # Confirmation message and event dispatch
-        await interaction.followup.send(Canned.MATCH_DM_CONF, ephemeral=True)
-        self.bot.dispatch(Event.PREMATCH_MODAL_DONE, payload)
+        # Send prematch view to user
+        return await interaction.response.send_message(view=prematch_view, ephemeral=True)
 
 
 async def setup(bot):
