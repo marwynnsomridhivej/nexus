@@ -2,6 +2,10 @@ from typing import Dict
 
 import discord
 
+__all__ = (
+    "ConfirmationModal",
+)
+
 
 class ConfirmationModal(discord.ui.Modal):
     def __init__(self, *, operation: str, custom: Dict[str, str] = {}):

@@ -6,7 +6,8 @@ import discord
 from canned import Canned
 from exceptions import InvalidMapPoolName
 from matchmanager import R6_QUICKMATCH, R6Map
-from settingsmanager import PER_MAP_POOL_LIMIT, DEFAULT_MAP_POOL_NAMES, CustomMapPool
+from settingsmanager import (DEFAULT_MAP_POOL_NAMES, PER_MAP_POOL_LIMIT,
+                             CustomMapPool)
 
 __all__ = (
     "SettingsMapPoolCreateModal",

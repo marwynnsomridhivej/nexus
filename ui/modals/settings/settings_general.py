@@ -5,6 +5,11 @@ import discord
 
 from canned import Canned
 
+__all__ = (
+    "SettingsSetAdminModal",
+    "SettingsBindTextChannelModal",
+)
+
 
 class SettingsSetAdminModal(discord.ui.Modal):
     def __init__(self, bot, previous: List[int]):

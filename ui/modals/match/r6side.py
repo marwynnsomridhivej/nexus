@@ -6,6 +6,10 @@ import discord
 from canned import Canned
 from matchmanager import R6Side
 
+__all__ = (
+    "R6SideModal",
+)
+
 
 class R6SideModal(discord.ui.Modal):
     def __init__(self, *, view):

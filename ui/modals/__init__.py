@@ -1,47 +1,9 @@
-__all__ = (
-    # Feedback
-    "FeedbackModal",
-
-    # R6 Draft
-    "PreMatchModal",
-    "R6DraftModal",
-    "R6MapBanModal",
-    "R6MVPModal",
-    "R6SideModal",
-    "R6ResultModal",
-
-    # General Confirmation
-    "ConfirmationModal",
-
-    # Seasons
-    "SeasonStartModal",
-
-    # Settings - General
-    "SettingsBindTextChannelModal",
-    "SettingsSetAdminModal",
-
-    # Settings - Map Pool
-    "SettingsMapPoolCreateModal",
-    "SettingsMapPoolEditModal",
-)
-
-# Feedback
-from .feedback import FeedbackModal
-
-# Before officially starting an R6 Match
-from .match.prematch import PreMatchModal
-
-# Draft and post-game modals for an R6 Match
-from .confirmation import ConfirmationModal
-from .match.r6draft import R6DraftModal
-from .match.r6mapban import R6MapBanModal
-from .match.r6mvp import R6MVPModal
-from .match.r6result import R6ResultModal
-from .match.r6side import R6SideModal
-
-# Season modals
-from .season.season_start import SeasonStartModal
-
-# Setting Modals
-from .settings.settings_general import SettingsBindTextChannelModal, SettingsSetAdminModal
-from .settings.settings_map_pool import SettingsMapPoolCreateModal, SettingsMapPoolEditModal
+from .confirmation import *
+from .feedback import *
+from .match.r6draft import *
+from .match.r6mapban import *
+from .match.r6mvp import *
+from .match.r6result import *
+from .match.r6side import *
+from .season_start import *
+from .settings import *

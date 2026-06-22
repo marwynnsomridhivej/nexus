@@ -7,6 +7,10 @@ import discord
 from canned import Canned
 from matchmanager import R6Map
 
+__all__ = (
+    "R6MapBanModal",
+)
+
 
 class R6MapBanModal(discord.ui.Modal):
     def __init__(self, *, view):

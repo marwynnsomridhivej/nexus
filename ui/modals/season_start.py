@@ -5,6 +5,10 @@ import discord
 
 from canned import Canned
 
+__all__ = (
+    "SeasonStartModal",
+)
+
 
 class SeasonStartModal(discord.ui.Modal):
     def __init__(self, *, bot):

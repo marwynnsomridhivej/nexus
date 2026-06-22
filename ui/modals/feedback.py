@@ -6,6 +6,10 @@ from canned import Canned
 
 from ..feedback_type import *
 
+__all__ = (
+    "FeedbackModal",
+)
+
 
 class FeedbackModal(discord.ui.Modal):
     def __init__(self, *, bot):

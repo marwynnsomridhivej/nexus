@@ -7,6 +7,10 @@ from canned import Canned
 from exceptions import RoundsWonTeamWonMismatch
 from matchmanager import MatchTeam
 
+__all__ = (
+    "R6ResultModal",
+)
+
 
 class R6ResultModal(discord.ui.Modal):
     def __init__(self, *, view):

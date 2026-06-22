@@ -6,6 +6,10 @@ import discord
 from canned import Canned
 from exceptions import *
 
+__all__ = (
+    "R6MVPModal",
+)
+
 
 class R6MVPModal(discord.ui.Modal):
     def __init__(self, *, view, captain_id: int = None):

@@ -5,6 +5,10 @@ import discord
 
 from canned import Canned
 
+__all__ = (
+    "R6DraftModal",
+)
+
 
 class R6DraftModal(discord.ui.Modal):
     def __init__(self, *, view):
