@@ -55,7 +55,7 @@ class SeasonEndDMView(discord.ui.LayoutView):
                     self._get_rating_text(player),
                     f"- Wins: `{player.wins}`",
                     f"- Losses: `{player.losses}`",
-                    f"- Winrate (W/L ratio): `{player.wl_ratio * 100}`",
+                    f"- Winrate (W/L ratio): `{player.wl_ratio * 100}%`",
                     f"- Times MVP: `{player.times_mvp}`",
                 ]))
             )
