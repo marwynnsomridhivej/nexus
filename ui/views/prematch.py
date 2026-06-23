@@ -8,6 +8,7 @@ from event import Event, PrematchPayload
 from exceptions import *
 from queuemanager import *
 from settingsmanager import DEFAULT_MAP_POOL_NAMES, CustomMapPool, MapPoolName
+from statsmanager import StatsPlayer
 
 __all__ = (
     "PrematchView",
@@ -222,7 +223,7 @@ class PrematchViewButtons(discord.ui.ActionRow):
             case CaptSelect.RANDOM:
                 return tuple(random.sample(player_ids, 2))
             case CaptSelect.RATING:
-                captains = sorted([
+                captains: List[StatsPlayer] = sorted([
                     await self.parent_view.bot.stats_manager.get_or_create_player(
                         guild_id=guild_id,
                         queue_type=queue_type,
@@ -256,7 +257,7 @@ class PrematchViewButtons(discord.ui.ActionRow):
             # Ensure no bots in selected users
             if any([user.bot for user in self.parent_view.manual_captain]):
                 return await interaction.response.send_message(Canned.ERR_PREMATCH_BOT_USER, **kwargs)
-            
+
             # Ensure the users selected are in the player pool
             player_ids = self.parent_view.queues[self.parent_view.queue].players
             if not all([user.id in player_ids for user in self.parent_view.manual_captain]):
@@ -276,7 +277,7 @@ class PrematchViewButtons(discord.ui.ActionRow):
         # Check if the queue entry can be started
         try:
             if self.parent_view.queue is not None:
-                entry = await self.parent_view.bot.queue_manager.start_match(
+                queue_entry = await self.parent_view.bot.queue_manager.start_match(
                     interaction.guild_id,
                     interaction.user.id,
                     self.parent_view.queue,
@@ -304,8 +305,8 @@ class PrematchViewButtons(discord.ui.ActionRow):
         else:
             captains = await self.select_captains(
                 guild_id=interaction.guild_id,
-                queue_type=entry.type,
-                player_ids=entry.players,
+                queue_type=queue_entry.type,
+                player_ids=queue_entry.players,
                 mode=self.parent_view.captain_mode,
             )
 
@@ -318,7 +319,8 @@ class PrematchViewButtons(discord.ui.ActionRow):
             "map_pool": map_pool.serialise(),
             "auto_draft": self.parent_view.auto_draft,
             "captains": captains,
-            "entry": entry,
+            "queue_entry": queue_entry.serialise(),
+            "match_entry": None,
         })
 
         # Dispatch PREMATCH_MODAL_DONE and send confirmation message

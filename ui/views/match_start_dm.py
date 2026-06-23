@@ -17,7 +17,7 @@ class MatchStartDMView(discord.ui.LayoutView):
 
         self._guild = guild
         self._payload = payload
-        self._entry = payload.entry
+        self._entry = payload.queue_entry
 
         self.init_components()
 
@@ -36,6 +36,8 @@ class MatchStartDMView(discord.ui.LayoutView):
             "  - -# If player count is ODD, the higher rated captain will get to pick first, " +
             "and picks alternate until one player remains. The last player will be drafted  " +
             "into the team of the lower rated captain automatically",
+            "  - -# If the match was started with auto draft enabled, players will be automatically " + 
+            "distributed to create the most balanced teams possible",
 
             f"1. Teams are split into isolated voice channels based on player draft",
             "  - -# Players are automatically moved by the bot and will only be able to see " +
