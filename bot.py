@@ -27,6 +27,7 @@ class Bot(commands.Bot):
                 name=f"v{self.__version__} | {self.__commit__}",
                 type=discord.ActivityType.playing,
             ),
+            owner_ids=config.owner_ids,
             **kwargs
         )
 
