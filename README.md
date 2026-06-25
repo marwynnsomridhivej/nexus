@@ -95,6 +95,31 @@ Give feedback directly to the developers.
 
 ## Changelog
 
+### 2.1.1-beta
+
+This patch release is targeted at a few important bugs related to how the bot
+handles situations where it softlocks any individual match waiting for user input
+that will never arrive.
+
+#### Bugfixes
+
+- Created a monitoring system for currently active match interactive panels
+  - Prior to this release, if a user were to delete the match panel before the
+  match was gracefully finished (either by reporting all MVP/results or cancellation),
+  the match entry would remain in limbo, preventing any subsequent queues from
+  using that name and preventing any attempts to end the current season
+  - Now, match panel message IDs are tracked and the panel will be recreated
+  if its message is deleted, while preserving the state of the draft/bans/side select
+- Actually check bound text channel send messages in threads permission for the bot
+before the `/match start` command is fully processed, as well as during submission
+of the prematch configuration interactive panel
+  - Prior to this release, the bot would lock the queue and create the match entry,
+  but would fail to display anything in the created thread and softlock the queue
+  and match entry, causing similar effects as the above bug related to message
+  deletion
+  - Now, starting the match will not be possible if the bot does not have adequate
+  permissions to send message in threads spawned in the bound text channel
+
 ### 2.1.0-beta
 
 #### Added
