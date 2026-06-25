@@ -38,6 +38,7 @@ class SettingsCog(commands.Cog):
             source_interaction=interaction,
             bot=self.bot,
         )
+        await view.init_components()
         return await interaction.response.send_message(
             view=view,
             ephemeral=True,
