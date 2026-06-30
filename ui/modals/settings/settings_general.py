@@ -18,10 +18,10 @@ __all__ = (
 
 
 class SettingsSetAdminModal(discord.ui.Modal):
-    def __init__(self, bot, previous: list[int]):
+    def __init__(self, bot: Bot, previous: list[int]):
         super().__init__(title="Set Admins")
         self.previous = previous
-        self.__bot: Bot = bot
+        self.__bot = bot
         self.admins: list[int] = None
         self.is_valid = True
 
