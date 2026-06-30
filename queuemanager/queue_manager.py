@@ -25,18 +25,18 @@ class QueueManager(ManagerBase):
     async def get_or_create_wrapper(self) -> QueueWrapper:
         return await super()._get_or_create_wrapper(cls=QueueWrapper)
 
+    async def can_create_queue(self, *, guild_id: int) -> bool:
+        wrapper = await self.get_or_create_wrapper()
+        return len(wrapper.get_or_create(guild_id).data.values()) < 20
+
     async def create_queue(
         self, *, guild_id: int, owner_id: int, name: str, queue_type: QueueType
     ) -> None:
-        # Do not allow for name to be longer than 100 characters (discord.SelectOption limit)
-        if len(name) > 100:
-            raise ValueError(name)
-
         wrapper = await self.get_or_create_wrapper()
 
         # Do not allow more than 20 simultaneous open queues at a time
         if len(wrapper.get_or_create(guild_id).data.values()) >= 20:
-            raise QueueLimitReached
+            raise QueueLimitReached(guild_id)
 
         queue_entry_data = {
             "owner_id": owner_id,
@@ -50,9 +50,11 @@ class QueueManager(ManagerBase):
         wrapper.get_or_create(guild_id).create(name.lower(), queue_entry_data)
         await self.write(wrapper)
 
-    async def delete_queue(self, guild_id: int, name: str, user_id: int) -> None:
+    async def delete_queue(
+        self, guild_id: int, name: str, user_id: int, admin: bool = False
+    ) -> None:
         wrapper = await self.get_or_create_wrapper()
-        wrapper.get_or_create(guild_id).delete(name, user_id)
+        wrapper.get_or_create(guild_id).delete(name, user_id, admin=admin)
         await self.write(wrapper)
 
     async def join_user_to_queue(
