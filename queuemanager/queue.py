@@ -120,12 +120,13 @@ class QueueGuildContainer(WrapperBase):
             raise QueueAlreadyExists(name)
         self.__data[name] = QueueEntry.parse(data)
 
-    def delete(self, name: str, user_id: int) -> "QueueEntry":
+    def delete(self, name: str, user_id: int, admin: bool = False) -> "QueueEntry":
         """Delete a QueueEntry with the specified name
 
         Args:
             name (str): The name of the queue
             user_id (int): The ID of the user that is attempting to delete the queue
+            admin (bool): Whether or not the user is a bot administrator. Defaults to False
 
         Raises:
             QueueDoesNotExist: No QueueEntry instance exists with the specified name
@@ -138,7 +139,7 @@ class QueueGuildContainer(WrapperBase):
         if queue_entry is None:
             raise QueueDoesNotExist(name)
 
-        if queue_entry.owner_id != user_id:
+        if not admin and queue_entry.owner_id != user_id:
             raise NotQueueOwner(real=queue_entry.owner_id, provided=user_id)
 
         return self.__data.pop(name)
